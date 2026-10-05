@@ -324,53 +324,6 @@ struct NrdBridgePushData
 	uint32_t showValidation;
 };
 
-struct MaterialData
-{
-	// 0..1
-	float3 albedoColor;
-	//
-	uint textureId;
-
-	// 0..1
-	float3 emissiveColor;
-	// Multiplies emissiveColor before it's added to hdr (ray.slang/shader.rast.slang) -- lets an
-	// emissive material read as a genuinely bright light source (lamps, screens, ...) rather than
-	// being capped to the same 0..1 range as a plain albedo color. 1.0 = emissiveColor as-is. See
-	// Material::m_emissiveIntensity (Material.h). Was unused padding (padding1[1]) before this --
-	// same size/position, so no layout shift for the fields after it.
-	float emissiveIntensity;
-
-	// 0..1
-	float roughness;
-	// 0..1
-	float metallic;
-	// 0..1
-	float albedoTextureFade;
-	// glTF metallic-roughness texture (G=roughness, B=metallic); kInvalidTextureId if this
-	// material has none, in which case roughness/metallic above are used as-is (no fade -- glTF
-	// has no blend factor for this texture, see Material::m_hndMetallicRoughnessTexture).
-	uint metallicRoughnessTextureId;
-	//
-	uint lightmapTextureId;
-
-	// 0 = disabled (dielectric F0 stays the standard constant 4%, see GetF0's comment). >0 = darker
-	// albedo suppresses specular reflectance too, not just diffuse -- a non-physical "specular
-	// occlusion" approximation for hand-painted/flat-shaded content (BSP decals, Quake-era textures)
-	// where "black" represents ink/shadow rather than a real dielectric material, which otherwise
-	// still shows a ~4% specular sheen precisely where the diffuse term is darkest (confirmed live
-	// as "black albedo areas look too bright" in ray tracing). See GetF0(baseColor, metallic,
-	// specularOcclusionFromAlbedo) (mathlib.slang) for the exact formula and Material::
-	// m_specularOcclusionFromAlbedo (Material.h) for the CPU-side default (0 for most materials,
-	// 0.25 for BSP-generated ones, see 3DBSPLevel.cpp).
-	float specularOcclusionFromAlbedo;
-
-	// Tangent-space normal map (glTF's, a hand-assigned one, or a BSP-generated one -- see
-	// GenerateNormalMapFromLuminance, Texture.h). Never kInvalidTextureId at this point: the CPU-side
-	// MaterialData fill (App.cpp) already resolved a material with no normal map of its
-	// own to g_hndDefaultNormalMap's heap index -- a flat (0,0,1) engine texture -- so every shader
-	// consumer can unconditionally sample this with no branch and no special-case fallback logic.
-	uint normalMapTextureId;
-};
 
 // Push data for the graphics pipeline (vkCmdPushDataEXT).
 // With descriptor heap, the pipeline layout is VK_NULL_HANDLE, so traditional push constants
@@ -379,10 +332,9 @@ struct MaterialData
 struct GraphicsPushData
 {
 	uint64_t sceneInfoAddress;  // SceneInfo*
-	uint64_t materialBufferAddress;
 	// 16bit materialID, 16bit meshId
 	uint materialAndMeshID;
-	float padding[3];
+	float padding[2];
 #ifdef _CPP
 alignas(16)
 #endif

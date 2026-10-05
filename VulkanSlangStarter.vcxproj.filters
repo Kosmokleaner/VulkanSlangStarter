@@ -93,7 +93,6 @@
     <ClInclude Include="RelativeMouseInput.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="shaders\shader_io.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform.h" />
@@ -196,6 +195,9 @@
     </ClInclude>
     <ClInclude Include="extern\GLFW\glfw3native.h">
       <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="shaders\shader_io.h">
+      <Filter>Shaders</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

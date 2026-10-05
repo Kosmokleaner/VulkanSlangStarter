@@ -105,25 +105,6 @@ float4x4 ComputePerspectiveMatrix(float fovAngle, float aspect, float nearZ, flo
 	return proj;
 }
 
-// @return worldToView = ViewFromWorld, orthonormal so transpose() = inverse()
-float4x4 lookAt(float3 eye, float3 target, float3 up)
-{
-	float3 zaxis = normalize(target - eye);
-	float3 xaxis = normalize(cross(up, zaxis));
-	float3 yaxis = cross(zaxis, xaxis);
-	return transpose(float4x4(float4(xaxis, 0), float4(yaxis, 0), float4(zaxis, 0), float4(eye, 1)));
-}
-
-float4 MatrixVectorMultiply(float4x4 mat, float4 vec)
-{
-	float4 result;
-	result.x = dot(mat[0], vec);
-	result.y = dot(mat[1], vec);
-	result.z = dot(mat[2], vec);
-	result.w = dot(mat[3], vec);
-	return result;
-}
-
 // reference for return mul(A, B);
 float4x4 MultiplyMatrices(float4x4 A, float4x4 B)
 {

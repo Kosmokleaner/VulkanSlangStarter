@@ -41,8 +41,6 @@ float4x4 GetViewMatrix()
 	SceneInfo *scene = (SceneInfo *)pushData.sceneInfoAddress;
 
 	return scene.viewFromWorld; //  pos is at bottom of matrix
-
-//	return lookAt(float3(0, 0, 15), float3(0, 0, 0), float3(0, 1, 0));	// this moves the VS position, pos is at bottom of matrix
 	// test
 //	return float4x4( // Note: S2H prints out in this form
 //		1.0, 2.0, 3.0, 0.1,

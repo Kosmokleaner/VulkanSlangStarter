@@ -38,8 +38,6 @@ float4x4 GetViewMatrix()
 	SceneInfo *scene = (SceneInfo *)pushData.sceneInfoAddress;
 
 	return scene.viewFromWorld; //  pos is at bottom of matrix
-
-//	return lookAt(float3(0, 0, 15), float3(0, 0, 0), float3(0, 1, 0));	// this moves the VS position, pos is at bottom of matrix
 	// test
 //	return float4x4( // Note: S2H prints out in this form
 //		1.0, 2.0, 3.0, 0.1,
@@ -148,87 +146,6 @@ void Test(inout ContextGather ui)
 		s2h_printTxt(ui, _COLON, _SPACE);
 		s2h_printInt(ui, objectIndex);
 	}
-
-
-/*
-	float4x4 worldToView = GetViewMatrix();
-	float4x4 viewToClip = GetPerspMatrix();
-	
-//	float4x4 worldToClip = mul(viewToClip, worldToView);
-	float4x4 worldToClip = MultiplyMatrices(viewToClip, worldToView);
-	
-		
-	s2h_setCursor(ui, float2(10, 40 + 0 * 40));
-	s2h_printTxt(ui, _W, _2, _V, _COLON);
-	s2h_setCursor(ui, float2(60, 40 + 0 * 40));
-	s2h_printFloat4x4(ui, worldToView);
-	s2h_printLF(ui);
-
-	s2h_setCursor(ui, float2(10, 40 + 1 * 40));
-	s2h_printTxt(ui, _V, _2, _C, _COLON);
-	s2h_setCursor(ui, float2(60, 40 + 1 * 40));
-	s2h_printFloat4x4(ui, viewToClip);
-		
-	s2h_setCursor(ui, float2(10, 40 + 2 * 40));
-	s2h_printTxt(ui, _W, _2, _C, _COLON);
-	s2h_setCursor(ui, float2(60, 40 + 2 * 40));
-	s2h_printFloat4x4(ui, worldToClip);
-	
-	s2h_printLF(ui);
-	s2h_printTxt(ui, _C, _a, _m, _P, _o, _s);
-	s2h_printTxt(ui, _COLON, _SPACE);
-	s2h_printFloat3(ui, S2S_CAMERA_POS());
-
-	s2h_printLF(ui);
-	s2h_printTxt(ui, _z, _R, _a, _n, _g, _e);
-	s2h_printTxt(ui, _COLON, _SPACE);
-	s2h_printFloat(ui, scene.zNear);
-	s2h_printTxt(ui, _SPACE);
-	s2h_printFloat(ui, scene.zFar);
-
-	for (int i = 0; i < 4; ++i)
-	{
-		s2h_setCursor(ui, float2(10, 200 + i * 40));
-		s2h_printTxt(ui, '[');
-		s2h_printInt(ui, i);
-		s2h_printTxt(ui, ']');
-		s2h_printLF(ui);
-
-		VSOutput v = computeVS(i, worldToClip, worldToView, viewToClip);
-		
-		s2h_setCursor(ui, float2(60, 200 + i * 40));
-		s2h_printTxt(ui, _O, _S, _COLON, _SPACE);
-		s2h_printFloat3(ui, v.osPos);
-		s2h_printLF(ui);
-
-		s2h_printTxt(ui, _V, _S, _COLON, _SPACE);
-		s2h_printFloat4(ui, v.vsPos);
-		s2h_printLF(ui);
-
-		s2h_printTxt(ui, _V, _S, _C, _S, _COLON, _SPACE);
-		s2h_printFloat4(ui, v.vscsPos); // hom
-		s2h_printTxt(ui, _EQUAL, '>', _SPACE);
-		s2h_printFloat3(ui, v.vscsPos.xyz / v.vscsPos.w); // after pers divide
-		s2h_printLF(ui);
-
-		s2h_printTxt(ui, _C, _S, _COLON, _SPACE);
-		s2h_printFloat4(ui, v.csPos); // hom
-		s2h_printTxt(ui, _EQUAL, '>', _SPACE);
-		s2h_printFloat3(ui, v.csPos.xyz / v.csPos.w); // after pers divide
-		s2h_printLF(ui);
-	}
-	
-	s2h_printLF(ui);
-	s2h_printLF(ui);
-
-	
-	for (int materialID = 0; materialID < 2; ++materialID)
-	{
-		MaterialData * materialBuffer = (MaterialData *)pushData.materialBufferAddress + materialID;
-		s2h_printFloat3(ui, materialBuffer.albedoColor); // after pers divide
-		s2h_printLF(ui);
-	}
-*/
 }
 
 
@@ -261,16 +178,7 @@ VSOutput computeVS(uint vertexId, float4x4 worldToClip, float4x4 worldToView, fl
 		output.osPos = float3(0, 1.1, 0);
 	*/
 	
-	if (false)
 	{
-		// mul
-		output.vsPos = mul(worldToView, float4(output.osPos, 1));
-		output.vscsPos = mul(viewToClip, mul(worldToView, float4(output.osPos, 1)));
-		output.csPos = mul(worldToClip, float4(output.osPos, 1));
-	}
-	else
-	{
-		// MatrixVectorMultiply
 		output.vsPos = mul(worldToView, float4(output.osPos, 1));
 		output.vscsPos = mul(viewToClip, mul(worldToView, float4(output.osPos, 1)));
 		output.csPos = mul(worldToClip, float4(output.osPos, 1));

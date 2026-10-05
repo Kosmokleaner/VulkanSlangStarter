@@ -40,8 +40,6 @@ float4x4 GetViewMatrix()
 	SceneInfo *scene = (SceneInfo *)pushData.sceneInfoAddress;
 
 	return scene.viewFromWorld; //  pos is at bottom of matrix
-
-//	return lookAt(float3(0, 0, 15), float3(0, 0, 0), float3(0, 1, 0));	// this moves the VS position, pos is at bottom of matrix
 	// test
 //	return float4x4( // Note: S2H prints out in this form
 //		1.0, 2.0, 3.0, 0.1,
@@ -113,11 +111,7 @@ VertexOutput vertexMain(const VertexInput input, uint vertexID : SV_VertexID)
 //	p = GetViewMatrix() * p; // no
 //	p = mul(GetViewMatrix(), p);
 //	p = mul(GetPerspMatrix(), p);
-//	p = MatrixVectorMultiply(transpose(GetPerspMatrix()), p);
 	p = mul(GetPerspMatrix(), p);
-
-	// redo differently
-//	p = MatrixVectorMultiply(MultiplyMatrices(GetPerspMatrix(), GetViewMatrix()), output.position);
 
 	output.position = p;
 	
@@ -193,10 +187,8 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	float3 interpolatedNormal = normalize(input.normal);
 	
 	uint materialID = pushData.materialAndMeshID >> 16;
-	
-	MaterialData * materialBuffer = (MaterialData *)pushData.materialBufferAddress + materialID;
-	float3 materialColor = materialBuffer.albedoColor;
 
+/*	
 	// Texture2D.Handle(uint2(index, 0)) creates a handle from the resource heap at the given index.
 	// SamplerState.Handle(uint2(0, 0)) gets the linear sampler at index 0 in the sampler heap.
 	// This is the Slang equivalent of GLSL's layout(descriptor_heap) access.
@@ -207,24 +199,7 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 		SamplerState samp = SamplerState.Handle(uint2(0, 0));
 		triangleColor = tex.Sample(samp, input.uv);
 	}
-	// See Texture.cpp's m_isSRGB comment -- albedo textures upload as VK_FORMAT_R8G8B8A8_SRGB, so
-	// the GPU already decoded gamma->linear on sample, same as the ray tracing path.
-	materialColor *= lerp(1.0f, triangleColor.rgb, materialBuffer.albedoTextureFade);
-
-	float metallic = materialBuffer.metallic;
-	float roughness = materialBuffer.roughness;
-
-	// glTF metallic-roughness texture: G=roughness, B=metallic, multiplied with the scalar
-	// factors above (no fade -- glTF has no blend factor for this texture, unlike albedo).
-	if (materialBuffer.metallicRoughnessTextureId != kInvalidTextureId)
-	{
-		Texture2D    mrTex  = Texture2D.Handle(uint2(materialBuffer.metallicRoughnessTextureId, 0));
-		SamplerState samp   = SamplerState.Handle(uint2(0, 0));
-		float4 mr = mrTex.Sample(samp, input.uv);
-		roughness *= mr.g;
-		metallic *= mr.b;
-	}
-
+*/
 	// g_lights (App.cpp): [0] is always the single global light (g_lightPos/
 	// g_lightColor/g_lightIntensity), followed by every point light the loaded BSP level's "light"
 	// entities parsed into (C3DBSPLevel::m_Lights). No shadow rays here (the rasterizer has no
@@ -232,8 +207,7 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	Light* lights = (Light*)scene.lightsAddress;
 	float3 V = normalize(Origin - surfacePos);
 
-	float3 hdr = materialColor;
-	hdr += materialBuffer.emissiveColor * materialBuffer.emissiveIntensity;
+	float3 hdr = float3(0,0,1); // blue
 
 	float3 ldr = filmicToneMapping(hdr);
 	

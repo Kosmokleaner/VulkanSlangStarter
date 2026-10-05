@@ -103,8 +103,6 @@ Buffer g_meshBuffer(EF_Type_Unknown);
 // (shader_io.h) for why a closest-hit shader needs this indirection instead of using InstanceID()
 // (an entity index, see Renderer::createTopLevelAS) to index g_meshBuffer directly.
 Buffer g_entityMeshIndexBuffer(EF_Type_Unknown);
-// [material->getHandle().index] = Material
-Buffer g_materialBuffer(EF_Type_Unknown);
 // [0] = the single global light (g_lightPos/g_lightColor/g_lightIntensity), [1..] = every point
 // light g_BSPLevel parsed from its level's "light" entities. Rebuilt on the CPU every frame (see
 // updateLights()) -- allocated once, lazily, sized for shaderio::kMaxLights, then updated in place
@@ -1469,7 +1467,7 @@ void App::destroy()
 	// device is confirmed idle (VK_CHECK(vkDeviceWaitIdle(device)) above), and every
 	// Buffer::deinit() call from this shutdown sequence -- including g_EventManager's
 	// callAppDeInit() above, which reaches every still-alive Buffer (mesh vertex/index/BLAS,
-	// g_meshBuffer, g_materialBuffer, each ray tracing Shader's own m_sbt, g_outputBuffer, ...) --
+	// g_meshBuffer, each ray tracing Shader's own m_sbt, g_outputBuffer, ...) --
 	// has already run by this
 	// point, so it's safe to free everything g_deferredRelease is still holding
 	// unconditionally, ahead of destroying the allocator that owns it.
@@ -1951,9 +1949,9 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 		.data = {.address = &pushData, .size = sizeof(shaderio::GraphicsPushData)},
 	};
 
-	VkClearColorValue clearColor; // red
-	clearColor.float32[0] = 1;
-	clearColor.float32[1] = 0;
+	VkClearColorValue clearColor; // dark yellow
+	clearColor.float32[0] = 0.5f;
+	clearColor.float32[1] = 0.5f;
 	clearColor.float32[2] = 0;
 	clearColor.float32[3] = 1.0f;
 
@@ -1974,7 +1972,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 		.imageLayout = VK_IMAGE_LAYOUT_GENERAL,
 		.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,   // Clear depth buffer
 		.storeOp = VK_ATTACHMENT_STORE_OP_STORE,  // Store depth buffer
-		//    .clearValue  = {{{1.0f, 0}}},
 			.clearValue = {{{0.0f, 0}}},
 	};
 
@@ -1992,91 +1989,21 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	// This replaces the traditional vkCmdBindDescriptorSets2 call that was used for the texture descriptor set.
 	// The sampler heap provides sampler descriptors (linear, nearest, etc.) and the resource heap provides image descriptors (loaded textures).
 	// Each VkBindHeapInfoEXT describes the heap buffer address, total size, and where the mandatory reserved range sits within the buffer.
-		const VkBindHeapInfoEXT samplerHeapBind{
-			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
-			.heapRange = {m_samplerHeapBuffer.address, m_samplerHeapSize},
-			.reservedRangeOffset = m_samplerReservedOffset,
-			.reservedRangeSize = m_samplerReservedSize,
-		};
-		vkCmdBindSamplerHeapEXT(cmd, &samplerHeapBind);
+	const VkBindHeapInfoEXT samplerHeapBind{
+		.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
+		.heapRange = {m_samplerHeapBuffer.address, m_samplerHeapSize},
+		.reservedRangeOffset = m_samplerReservedOffset,
+		.reservedRangeSize = m_samplerReservedSize,
+	};
+	vkCmdBindSamplerHeapEXT(cmd, &samplerHeapBind);
 
-		const VkBindHeapInfoEXT resourceHeapBind{
-			.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
-			.heapRange = {g_renderer.m_descriptorHeap.m_resourceHeapBuffer.address, g_renderer.m_descriptorHeap.m_resourceHeapSize},
-			.reservedRangeOffset = g_renderer.m_descriptorHeap.m_resourceReservedOffset,
-			.reservedRangeSize = g_renderer.m_descriptorHeap.m_resourceReservedSize,
-		};
-		vkCmdBindResourceHeapEXT(cmd, &resourceHeapBind);
-
-//		if (g_materialBuffer.m_data.buffer == VK_NULL_HANDLE)
-	{
-		VkCommandBuffer cmd = utils::beginSingleTimeCommands(g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool);
-
-		uint32 count = g_MaterialManager.GetElementCount();
-
-		// uint64 for buffer device address, *2 for IB and VB
-		// at least 1 entry even with 0 materials (empty scene) -- an empty vector's data() can be
-		// null, and Buffer::initRaw() asserts its data pointer is non-null (Buffer.cpp:24); nothing
-		// ever indexes into this dummy entry since there's nothing to draw with 0 materials either.
-		std::vector<shaderio::MaterialData> data(std::max<uint32>(count, 1));
-
-		for (uint32 i = 0; i < count; ++i)
-		{
-			shaderio::MaterialData& dst = data[i];
-			const auto src = g_MaterialManager.GetElementByIterator(i);
-
-			// ray.slang's g_textures[] (bound from g_renderer.m_rtTextureViews, see
-			// updateRayDescriptorSet()) only actually holds a live view for indices this session's
-			// Texture::uploadPixels() has (re)written since the last time loadScene() cleared the
-			// whole array -- a heap index whose view is still VK_NULL_HANDLE here would read a
-			// destroyed/never-written slot on the GPU (silent corruption or VK_ERROR_DEVICE_LOST)
-			// instead of this clean assert.
-			Texture* tex = g_TextureManager.GetElementPtr(src.m_hndTexture);
-			dst.textureId = tex ? tex->getHeapIndex() : shaderio::kInvalidTextureId;
-			ASSERT(dst.textureId == shaderio::kInvalidTextureId || dst.textureId >= shaderio::kMaxRayTracingTextures
-				|| g_renderer.m_rtTextureViews[dst.textureId] != VK_NULL_HANDLE);
-
-
-			Texture* mrTex = g_TextureManager.GetElementPtr(src.m_hndMetallicRoughnessTexture);
-			dst.metallicRoughnessTextureId = mrTex ? mrTex->getHeapIndex() : shaderio::kInvalidTextureId;
-			ASSERT(dst.metallicRoughnessTextureId == shaderio::kInvalidTextureId || dst.metallicRoughnessTextureId >= shaderio::kMaxRayTracingTextures
-				|| g_renderer.m_rtTextureViews[dst.metallicRoughnessTextureId] != VK_NULL_HANDLE);
-
-			Texture* lmTex = g_TextureManager.GetElementPtr(src.m_hndLightmap);
-			dst.lightmapTextureId = lmTex ? lmTex->getHeapIndex() : shaderio::kInvalidTextureId;
-			ASSERT(dst.lightmapTextureId == shaderio::kInvalidTextureId || dst.lightmapTextureId >= shaderio::kMaxRayTracingTextures
-				|| g_renderer.m_rtTextureViews[dst.lightmapTextureId] != VK_NULL_HANDLE);
-
-			// See g_hndDefaultNormalMap's own comment -- unlike the textures above (which fall back
-			// to kInvalidTextureId, a sentinel the shader branches on), a material with no normal map
-			// of its own resolves straight to the flat (0,0,1) engine default's heap index instead,
-			// so the shader can always sample this field unconditionally.
-			Texture* normalTex = g_TextureManager.GetElementPtr(src.m_hndNormalMap);
-			Texture* defaultNormalTex = g_TextureManager.GetElementPtr(g_hndDefaultNormalMap);
-			ASSERT(defaultNormalTex); // created once in init(), before any material is ever filled
-			dst.normalMapTextureId = normalTex ? normalTex->getHeapIndex() : defaultNormalTex->getHeapIndex();
-			ASSERT(dst.normalMapTextureId >= shaderio::kMaxRayTracingTextures
-				|| g_renderer.m_rtTextureViews[dst.normalMapTextureId] != VK_NULL_HANDLE);
-
-			dst.albedoColor = src.m_albedoColor;
-			dst.emissiveColor = src.m_emissiveColor;
-			dst.emissiveIntensity = src.m_emissiveIntensity;
-			dst.roughness = src.m_roughness;
-			dst.metallic = src.m_metallic;
-			dst.albedoTextureFade = src.m_albedoTextureFade;
-			dst.specularOcclusionFromAlbedo = src.m_specOcclusionFromAlbedo;
-		}
-
-		// need to be outside vkCmdBeginRendering/vkCmdEndRendering
-		g_materialBuffer.initRaw(g_renderer.m_allocator, cmd, data.data(), data.size(), sizeof(*data.data()), Buffer::eBT_ShaderBindingTable);
-
-		utils::endSingleTimeCommands(cmd, g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool, g_renderer.m_context.getGraphicsQueue().queue);
-	}
-
-	// g_materialBuffer is guaranteed valid from here on (just-created above on frame 1, or already
-	// existing on later frames); see the comment where pushData was constructed.
-	pushData.materialBufferAddress = g_materialBuffer.m_data.address;
-	ASSERT(pushData.materialBufferAddress);
+	const VkBindHeapInfoEXT resourceHeapBind{
+		.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
+		.heapRange = {g_renderer.m_descriptorHeap.m_resourceHeapBuffer.address, g_renderer.m_descriptorHeap.m_resourceHeapSize},
+		.reservedRangeOffset = g_renderer.m_descriptorHeap.m_resourceReservedOffset,
+		.reservedRangeSize = g_renderer.m_descriptorHeap.m_resourceReservedSize,
+	};
+	vkCmdBindResourceHeapEXT(cmd, &resourceHeapBind);
 
 
 	// Begin dynamic rendering
