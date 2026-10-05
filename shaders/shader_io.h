@@ -80,49 +80,6 @@ STATIC_CONST uint kInteractionResultOffset = 16;
 #define ROW_MAJOR row_major
 #endif
 
-
-struct VisualizeMode
-{
-	enum EEnum {
-		EVM_Shaded,
-		// G-buffer targets, grouped together right after Default -- all of these read back the
-		// actual g_gbufferX texture (ray.slang), not just a payload/local value computed some other
-		// way; see their "(GBuffer)" UI labels below and ray.slang's comment at the same spot.
-		EVM_NormalWS,
-		EVM_AlbedoColor,
-		EVM_Roughness,
-		// linear view-space depth, banded via frac() (same style as EVM_DepthWS below)
-		EVM_ViewZ,
-		// color-coded 2D screen-space offset
-		EVM_MotionVector,
-		//		EVM_NormalTS,
-		//		EVM_NormalOS,
-		//		EVM_PositionOS,
-		EVM_PositionWS,
-		// in 0..1 range, zNear: 0, zFar:1
-		EVM_DepthNorm,
-		// Euclidian Distance to the camera
-		EVM_DepthWS,
-		// frac(uv), 0
-		EVM_UV,
-		// frac(lightmapUV), 0
-		EVM_LightmapUV,
-		//
-		EVM_Lightmap,
-		//
-		EVM_MaterialID,
-		//
-		EVM_MeshID,
-		//
-		EVM_InstanceIndex,
-	};
-#ifdef _CPP
-	// "(GBuffer)" marks every mode that reads back one of the g_gbufferX textures (ray.slang)
-	// rather than a payload/local value computed some other way.
-	static constexpr char* typeUI = (char*)"Shaded\0NormalWS (GBuffer)\0AlbedoColor (GBuffer)\0Roughness (GBuffer)\0ViewZ (GBuffer)\0MotionVector (GBuffer)\0PositionWS\0DepthNorm\0DepthWS\0UV\0LightmapUV\0Lightmap\0MaterialID\0MeshID\0InstanceIndex\0";
-#endif
-};
-
 // One point light; see g_lights (App.cpp), rebuilt on the CPU every frame: [0] is
 // always the single global light (g_lightPos/g_lightColor/g_lightIntensity), followed by every
 // point light the loaded BSP level's "light" entities parsed into (C3DBSPLevel::m_Lights).
@@ -178,22 +135,13 @@ struct SceneInfo
 	ROW_MAJOR float4x4 prevClipFromView;
 
 	float3 wsCameraPos;
-	// 0/1
-	uint rayTracing;
+	// 0:hide/1:draw HUD
+	uint infoHUD;
 
 	// in sRGB
 	float3 clearColor;
 	float zNear;
 
-	// basic path tracing (rayGenMain, ray.slang): 0 = off, direct lighting only (single hit, no
-	// bounces); N>0 = also trace N indirect diffuse bounces inline in rayGenMain's loop. One
-	// path per pixel either way -- no extra samples, no denoiser.
-	uint pathTracingBounces;
-	uint frameNoiseSeed;
-	// 0/1
-	uint drawLights;
-	// 0:hide/1:draw HUD
-	uint infoHUD;
 
 	uint temporalAccumulator;
 	// 1/(temporalAccumulator+1)
@@ -203,16 +151,6 @@ struct SceneInfo
 	// for frame Jitter
 	uint frameIndex;
 
-	// 0..1, 0.5 if jitter is disabled
-	float2 temporalJitter;
-	// 0..1, 0.5 if jitter is disabled
-	float2 temporalJitterPrev;
-
-	// g_lights (App.cpp), rebuilt on the CPU every frame -- see Light's declaration
-	// comment above for what's at each index. Light picking/importance is now handled by RTXDI
-	// (ReSTIR DI, see RtxdiBridge.slang/rtxdi_io.h) instead of a CPU-built CDF.
-	uint64_t lightsAddress; // Light*
-
 	// Basic homogeneous participating media (ray.slang: EvalFogTransmittance/EvalInscattering). A
 	// per-channel extinction/scattering coefficient is fogDensity * fogColor (single-scattering
 	// albedo of 1, i.e. no separate absorption); 0 density disables fog entirely. fogColor also
@@ -221,43 +159,8 @@ struct SceneInfo
 	float3 fogColor;
 	float fogDensity;
 
-	// Henyey-Greenstein asymmetry (-1..1): >0 favors forward scattering (bright halo looking
-	// toward a light through the fog), <0 favors backscattering (toward the viewer), 0 isotropic.
-	float fogAsymmetry;
-	// Vertical FOV, in degrees -- clipFromView above is already built from this (see
-	// updateSceneBuffer(), App.cpp); carried here too as a raw value for anything that
-	// wants the angle directly instead of deriving it back out of the projection matrix.
-	float fieldOfViewDeg;
-	uint lightCount;
-	uint enableTextures;
-	// RTXDI (ReSTIR DI) is no longer wired into rayGenMain -- kept only so the SceneInfo layout
-	// doesn't shift (see shader_io.h's own note on field-order/alignment risk); always 0.
-	uint enableRtxdi;
-	// 0/1 -- see g_enableRestirGI (App.cpp)'s comment: temporal (exponential-moving-
-	// average) resampling of per-vertex path-tracing contributions (ray.slang's basic path-tracing
-	// bounce loop) -- applies uniformly to direct lighting at the primary hit and the first
-	// indirect bounce alike, the same way emissive already applies at every vertex.
-	uint enableRestirGI;
-
-	// 0/1 -- gates the filmic tonemapper (post.slang, mathlib.slang's filmicToneMapping) applied
-	// after ray tracing integration/exposure; off leaves the linear HDR color as-is (still goes
-	// through the final linear->sRGB encode). See g_enableTonemapper (App.cpp).
-	uint enableTonemapper;
-
-	// Multiplies the sampled lightmap before it darkens materialColor (shader.rast.slang: "hdr =
-	// lightmap * materialColor"). 1.0 = use the baked texel value as-is. A too-contrasty/crushed-
-	// blacks look reported live points at the lightmap's overall brightness/scale being off, not
-	// its gamma curve -- baked lightmaps are stored as raw linear radiosity, never gamma/sRGB-
-	// encoded like a photographic texture (see the lightmap Texture's own m_isSRGB=false at load
-	// time, 3DBSPLevel.cpp), so there's no decode step to get wrong here. Quake-era lightmaps were
-	// conventionally baked deliberately dark ("overbright bits"), relying on the
-	// engine to scale them back up (often ~2x) at render time so bright areas don't clip during
-	// baking; this renderer currently applies no such compensation. Live tunable instead of
-	// guessing the right constant blind. See g_lightmapIntensity (App.cpp).
-	float lightmapIntensity;
-
 	float zFar;
-
+	float fieldOfViewDeg;
 };
 
 struct RayPushData

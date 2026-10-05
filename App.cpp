@@ -103,34 +103,10 @@ Buffer g_meshBuffer(EF_Type_Unknown);
 // (shader_io.h) for why a closest-hit shader needs this indirection instead of using InstanceID()
 // (an entity index, see Renderer::createTopLevelAS) to index g_meshBuffer directly.
 Buffer g_entityMeshIndexBuffer(EF_Type_Unknown);
-// [0] = the single global light (g_lightPos/g_lightColor/g_lightIntensity), [1..] = every point
-// light g_BSPLevel parsed from its level's "light" entities. Rebuilt on the CPU every frame (see
-// updateLights()) -- allocated once, lazily, sized for shaderio::kMaxLights, then updated in place
-// each frame via vkCmdUpdateBuffer (same pattern as m_sceneInfoBuffer).
-Buffer g_lights(EF_Type_Unknown);
-// Set by updateLights() each frame; read by App::updateSceneBuffer() for SceneInfo::lightCount
-uint32 g_lightCount = {};
 
 CRenderCompHandle g_plane;
 
-shaderio::VisualizeMode::EEnum g_visualizeMode = {};
-
-bool g_enableTonemapper = false;
-// See shader_io.h's SceneInfo::lightmapIntensity comment -- Quake-style "overbright bits"
-// compensation, live-tunable since the right scale isn't known yet.
-float g_lightmapIntensity = 1.0f;
-
-// Homogeneous participating media (ray.slang): colored Beer-Lambert extinction plus
-// Henyey-Greenstein forward/backward in-scattering toward the light. 0 density = off.
-float3 g_fogColor = float3(0.5f, 0.6f, 0.7f);
-float g_fogDensity = 0.0f;
-// -1..1: >0 forward scattering, <0 backscattering, 0 isotropic
-float g_fogAsymmetry = 0.7f;
-
 bool g_InfoHUD = false;
-bool g_drawLights = false;
-bool g_enableLights = true;
-bool g_enableTextures = true;
 
 // Default mirrors ContextCreateInfo::enableValidationLayers' own NDEBUG-based default
 // (vk_framework.h) so contextConfig.enableValidationLayers can just copy this unconditionally
@@ -722,16 +698,7 @@ void Reflection(CIniArchive& archive, WindowPersist& ref, App& app)
 	//
 
 	Reflection(archive, "VSyncMode", (int&)app.m_vSyncMode);
-
-	Reflection(archive, "EnableTonemapper", g_enableTonemapper);
-	Reflection(archive, "LightmapIntensity", g_lightmapIntensity);
-	Reflection(archive, "FogColor", g_fogColor);
-	Reflection(archive, "FogDensity", g_fogDensity);
-	Reflection(archive, "FogAsymmetry", g_fogAsymmetry);
 	Reflection(archive, "InfoHUD", g_InfoHUD);
-	Reflection(archive, "DrawLights" , g_drawLights);
-	Reflection(archive, "EnableLights", g_enableLights);
-	Reflection(archive, "EnableTextures", g_enableTextures);
 	// g_Camera's own Reflection() (see Reflection.cpp) covers FieldOfView along with position/rotation,
 	// encoded as a single string under one key so multiple cameras wouldn't collide.
 //	Reflection(archive, "Camera", g_Camera);
@@ -1607,18 +1574,11 @@ void App::drawFrame(VkCommandBuffer cmd)
 
 	if (ImGui::Begin("Settings"))
 	{
-		resetTemporal |= ImGui::Checkbox("Tonemapper", &g_enableTonemapper);
-		resetTemporal |= ImGui::SliderFloat("Lightmap Intensity", &g_lightmapIntensity, 0.0f, 4.0f);
-
 		ImGui::Separator();
 
-		resetTemporal |= ImGui::Combo("VisualizeMode", (int*)&g_visualizeMode, shaderio::VisualizeMode::typeUI, 20);
 		if(ImGui::Combo("VSync Mode", (int*)&m_vSyncMode, "Off\0" "TearFree\0" "VSync\0"))
 			m_swapchain.requestRebuild();  // Recreate the swapchain with the new vSync setting
 
-		resetTemporal |= ImGui::Checkbox("Enable Lights", &g_enableLights);
-		resetTemporal |= ImGui::Checkbox("Enable Textures", &g_enableTextures);
-		resetTemporal |= ImGui::Checkbox("Draw Lights", &g_drawLights);
 		ImGui::Checkbox("Info HUD", &g_InfoHUD);
 
 		ImGui::Separator();
@@ -1847,13 +1807,8 @@ void App::updateSceneBuffer(VkCommandBuffer cmd) const
 	sceneInfo.resolution = float2(m_viewportSize.width, m_viewportSize.height);
 	sceneInfo.numData = 0; // todo remove
 	sceneInfo.texId = m_imageID;
-	sceneInfo.visualizeMode = (uint32)g_visualizeMode;
+	sceneInfo.visualizeMode = 0;
 	sceneInfo.clearColor = float3(0, 1, 0);	// green
-	sceneInfo.fogColor = g_fogColor;
-	sceneInfo.fogDensity = g_fogDensity;
-	sceneInfo.fogAsymmetry = g_fogAsymmetry;
-	sceneInfo.enableTonemapper = g_enableTonemapper ? 1 : 0;
-	sceneInfo.lightmapIntensity = g_lightmapIntensity;
 	
 	float zNear = 0.1f;
 	float zFar = 100000.0f;
@@ -1888,12 +1843,8 @@ void App::updateSceneBuffer(VkCommandBuffer cmd) const
 
 	sceneInfo.wsCameraPos = transform.GetPos();
 	sceneInfo.infoHUD = g_InfoHUD;
-	sceneInfo.drawLights = g_drawLights;
 	sceneInfo.zNear = zNear;
 	sceneInfo.zFar = zFar;
-	sceneInfo.lightsAddress = g_lights.m_data.address;
-	sceneInfo.lightCount = g_enableLights ? g_lightCount : 0;
-	sceneInfo.enableTextures = g_enableTextures;
 
 	// Add a barrier to make sure nothing was writing to it, before updating its content
 	utils::cmdBufferMemoryBarrier(cmd, m_sceneInfoBuffer.buffer,

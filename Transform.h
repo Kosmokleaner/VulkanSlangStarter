@@ -150,36 +150,6 @@ public:
 	float3 position;
 };
 
-// todo: move
-// input vector don't have to be normalized
-// can be optimized
-inline void GetOtherBaseVec(float3 in, float3 &a, float3 &b)
-{
-	float3 v = glm::normalize(in);			// normalized input allows stable asserts
-
-	if (v.z < -0.5f || v.z > 0.5f)
-	{
-		a.x = v.z;
-		a.y = v.y;
-		a.z = -v.x;
-	}
-	else
-	{
-		a.x = v.y;
-		a.y = -v.x;
-		a.z = v.z;
-	}
-
-	b = glm::cross(in, a);
-	b = glm::normalize(b);
-	a = glm::cross(b, in);
-	a = glm::normalize(a);
-
-	//	ASSERT(fabs(a*b)<0.01f);
-	//	ASSERT(fabs((*this)*a)<0.01f);
-	//	ASSERT(fabs((*this)*b)<0.01f);
-}
-
 // cast like HLSL function
 // todo: move
 inline float asfloat2(uint32 x)

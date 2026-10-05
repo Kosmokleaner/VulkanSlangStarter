@@ -25,4 +25,6 @@ selectSwapPresentMode: eVSyncMode=2 (VSync) -> chosen=2
 Created UI descriptor pool: 130 sets (sampler=2, sampledImage=128)
 
 
+Compile 'shaders/shader.rast.slang' 'vertexMain' 'fragmentMain'
+
 selectSwapPresentMode: eVSyncMode=1 mailboxSupported=1 immediateSupported=1 -> chosen=1

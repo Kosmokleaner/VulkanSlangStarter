@@ -12,7 +12,6 @@ struct VertexOutput
     float4 position : SV_Position; // Clip space position (required)
     float2 uv : TEXCOORD0; // Interpolated texture coordinates
 	float3 normal: TEXCOORD1; // Interpolated world space normal, not normalized
-	float2 lightmapUV : TEXCOORD2; // Interpolated world space normal, not normalized
 };
 
 struct PixelOutput
@@ -40,12 +39,6 @@ float4x4 GetViewMatrix()
 	SceneInfo *scene = (SceneInfo *)pushData.sceneInfoAddress;
 
 	return scene.viewFromWorld; //  pos is at bottom of matrix
-	// test
-//	return float4x4( // Note: S2H prints out in this form
-//		1.0, 2.0, 3.0, 0.1,
-//		0.0, 1.0, 0.0, 0.2,
-//		0.0, 0.0, 1.0, 0.3,
-//		0.4, 0.5, 0.6, 1.0);
 }
 
 // @return viewToClip aka ClipFromView
@@ -53,17 +46,8 @@ float4x4 GetPerspMatrix()
 {
 	SceneInfo * scene = (SceneInfo *)pushData.sceneInfoAddress;
 
-//	return scene.clipFromView;// bad
-
 	return ComputePerspectiveMatrix(scene.fieldOfViewDeg * PI / 180.0f, scene.resolution.x / (float) scene.resolution.y, scene.zNear, scene.zFar);
 //	return transpose(scene.clipFromView);
-
-	// test
-//	return float4x4( // Note: S2H prints out in this form
-//		2.41f, 0.0,   3.0, 0.0,
-//		0.0,   2.41f, 0.0, 0.0,
-//		0.0,   0.0,   0.0, 1.0,
-//		0.0,   0.0,   0.1, 0.0);
 }
 
 //------------------------------------------------------------------------------
@@ -91,26 +75,14 @@ VertexOutput vertexMain(const VertexInput input, uint vertexID : SV_VertexID)
 //    output.color    = input.color;
 //	output.color = normalize(input.normal) * 0.5f + 0.5f;
 	output.uv = input.uv;
-	output.lightmapUV = input.lightmapUV;
-//	output.normal = input.normal;// todo: transform
 	output.normal = mul(input.normal, transpose((float3x3)pushData.modelMatrix));
 
     // Transform vertex position to clip space
-//	output.position = GetPerspMatrix() * GetViewMatrix() * pushData.modelMatrix * output.position;
 	float4 p = output.position;
 
 	p = mul(pushData.modelMatrix, p);
 
-	
-//	p = mul(p, pushData.modelMatrix);
-	// mul(m, v): Treats v as a column vector and multiplies matrix m by it.
-//	p = mul(p, pushData.modelMatrix);
-//	p = mul(p, transpose(GetViewMatrix()));
 	p = mul(GetViewMatrix(), p);
-//	p = p * GetViewMatrix(); // no
-//	p = GetViewMatrix() * p; // no
-//	p = mul(GetViewMatrix(), p);
-//	p = mul(GetPerspMatrix(), p);
 	p = mul(GetPerspMatrix(), p);
 
 	output.position = p;
@@ -131,22 +103,6 @@ VertexOutput vertexMain(const VertexInput input, uint vertexID : SV_VertexID)
 	// DirectX NDC y=1 is top, -1 is bottom
 	// OpenGL/Vulkan NDC y=-1 is top, 1 is bottom
 	output.position.y = -output.position.y;
-
-	// AA jitter (see scene.temporalJitter's own comment, App.cpp's updateSceneBuffer):
-	// ray.slang's rayGenMain applies the identical jitter by sampling the primary ray at pixel
-	// center + (temporalJitter-0.5) instead of the pixel center -- i.e. it samples the scene shifted
-	// by that sub-pixel delta. To make the rasterizer (which always samples at fixed pixel centers)
-	// produce the same result, the *geometry* has to move by the opposite delta instead: shifting
-	// what's rendered left is equivalent to sampling further right. Scaled by w since this is still
-	// homogeneous clip space, pre perspective-divide. Both temporalJitter and NDC x/y here already
-	// agree on "Y increases downward" (pixel-space and this shader's post-flip NDC both do), so no
-	// extra sign flip is needed for that -- only the geometry-vs-sample-point negation above.
-	output.position.xy -= (scene.temporalJitter - 0.5f) * (2.0f / scene.resolution) * output.position.w;
-
-	// hack
-//	output.position.zw = float2(0.95f, 10);	// after divide z needs to be in 0..1 range
-//	output.position.xy *= 0.125;
-//	output.position.xy *= output.position.w;
 
 	return output;
 }
@@ -200,16 +156,12 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 		triangleColor = tex.Sample(samp, input.uv);
 	}
 */
-	// g_lights (App.cpp): [0] is always the single global light (g_lightPos/
-	// g_lightColor/g_lightIntensity), followed by every point light the loaded BSP level's "light"
-	// entities parsed into (C3DBSPLevel::m_Lights). No shadow rays here (the rasterizer has no
-	// acceleration structure to trace against, unlike ray.slang) -- every light is unoccluded.
-	Light* lights = (Light*)scene.lightsAddress;
 	float3 V = normalize(Origin - surfacePos);
 
 	float3 hdr = float3(0,0,1); // blue
 
-	float3 ldr = filmicToneMapping(hdr);
+	// todo: tonemapper
+	float3 ldr = hdr;
 	
 	// m_renderTarget is VK_FORMAT_R8G8B8A8_UNORM (App.cpp) -- no hardware sRGB encode on
 	// write, so it has to happen here, same as post.slang's own final output write. Previously only

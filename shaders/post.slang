@@ -127,10 +127,6 @@ void Test(inout ContextGather ui)
 	s2h_printLF(ui);
 	s2h_printFloat4(ui, extraDataOut[3]);
 
-	s2h_printLF(ui);
-	s2h_printLF(ui);
-	s2h_printTxt(ui, _F, _O, _V, _COLON);
-	s2h_printFloat4(ui, scene.fieldOfViewDeg);
 
 	s2h_printLF(ui);
 	s2h_printLF(ui);
@@ -248,22 +244,6 @@ void s2h_printFloat4x4(inout ContextGather ui, float4x4 m)
 	}
 }
 
-// @return 0/1 
-int getRayTracingSelection(VertexOutput input, int2 offset)
-{
-	SceneInfo* scene = (SceneInfo*)pushData.sceneInfoAddress;
-	int2 pixel = (int2)input.position.xy + offset;
-	uint2 resolution = (uint2)scene.resolution;
-	float4* rayTraceData = (float4*)scene.outputAddress;
-
-	if((uint)pixel.x < resolution.x
-	&& (uint)pixel.y < resolution.y
-	&& rayTraceData[pixel.y * resolution.x + pixel.x].a < 0.0f)
-		return 1;
-
-	return 0;
-}
-
 // [shader("pixel")] is Slang's way of marking the fragment shader entry point
 [shader("pixel")]
 PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
@@ -284,38 +264,6 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	float4 linearBackground = float4(0.1f, 0.1f, 0.1f, 0);
 
 	float depth = 0;
-	// 0..1
-	float selected = 0.0f;
-	
-	// ray tracing
-	if(scene.rayTracing != 0)
-	{
-		uint2 pixel = (uint2)input.position.xy;
-		float4* rayTraceData = (float4 *)scene.outputAddress;
-		float4* rayTraceSpecularData = (float4 *)scene.outputSpecularAddress;
-		uint index = pixel.y * (uint)scene.resolution.x + pixel.x;
-		// See ray.slang's hdrSpecular comment -- the direct/NEE specular lobe was split out of the
-		// diffuse channel above into its own NRD-denoised channel, recombined here for display; both
-		// use the same invTemporalAccumulator scaling (a no-op multiply-by-1 outside Reference
-		// Accumulation mode, since NRD keeps temporalAccumulator at 1 -- see g_outputBufferSpecular's
-		// own comment for why the specular buffer is ping-ponged/accumulated the same way).
-		linearBackground = float4((rayTraceData[index].rgb + rayTraceSpecularData[index].rgb) * scene.invTemporalAccumulator, 1);
-
-		if (scene.visualizeMode == VisualizeMode::EEnum::EVM_Shaded && scene.enableTonemapper != 0)
-		{
-			// tonemap after integration
-			linearBackground.rgb = filmicToneMapping(linearBackground.rgb);
-		}
-		depth = abs(rayTraceData[index].a);
-
-		int inside = getRayTracingSelection(input, int2(0, 0));
-		int outside = getRayTracingSelection(input, int2(1, 0)) 
-					+ getRayTracingSelection(input, int2(-1, 0))
-					+ getRayTracingSelection(input, int2(0, 1))
-					+ getRayTracingSelection(input, int2(0, -1));
-
-		selected = saturate(outside) - inside * 0.75f;
-	}
 
 	float2 fragPos = (input.position.xy / scene.resolution) * 2.0f - 1.0f;
 	RayDesc ray;
@@ -340,54 +288,6 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	float4 linearColor = linearBackground * (1.0f - ui.dstColor.a) + ui.dstColor;
 
 	output.color = float4(s2h_accurateLinearToSRGB(linearColor.rgb), linearColor.a);
-
-	if(scene.drawLights != 0)
-	{
-		Context3D context;
-
-		s2h_init(context, ray.Origin, ray.Direction);
-		context.depth = depth;
-		// tube light
-//		s2h_drawLineWS(context, scene.wsLightPos - float3(0,0, scene.lightHalfLength), scene.wsLightPos + float3(0, 0, scene.lightHalfLength), float4(scene.lightColor, 1), 0.15f);
-
-		Light* lights = (Light*)scene.lightsAddress;
-
-		[loop]
-		for (uint li = 0; li < scene.lightCount; ++li)
-		{
-			float3 lightPos = lights[li].position;
-			float3 lightColor = lights[li].color;
-//			float lightRadius = lights[li].radius;
-
-			s2h_drawSphereWS(context, lightPos, float4(lightColor, 1), 0.02f);
-		}
-
-		// laser physical
-//		s2h_drawSphereWS(context, float3(0, 1.5f, -2), float4(1, 0, 0, 1), 0.02f);
-//		s2h_drawLineWS(context, float3(0, 1.5f, -2), float3(0, 1.5f, -2) - float3(0,0,0.5f), float4(0.1f, 0.1f, 0.1f, 1.0f), 0.1f);
-
-/*
-		{
-			uint2 resolution = (uint2)scene.resolution;
-			// 16MB extra data to maintain state over multiple frames
-			float4* extraDataOut = (float4*)scene.prevOutputAddress + resolution.x * resolution.y;
-
-			uint count = asuint(extraDataOut[0].x);
-
-			for(uint i = 1; i < count; ++i)
-			{
-				float3 p0 = extraDataOut[1 + i - 1].xyz;
-				float3 p1 = extraDataOut[1 + i].xyz;
-
-				s2h_drawLineWS(context, p0, p1, float4(1, 0, 0, 1), 0.005f);
-			}
-		}
-*/
-
-		output.color = lerp(output.color, context.dstColor, context.dstColor.a);
-	}
-
-	output.color = lerp(output.color, float4(0,1,0,1), selected);
 
 	if (output.color.a < 1.0f)
 		clip(-1);
