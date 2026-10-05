@@ -1,0 +1,378 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{12d1985b-c1da-40c8-8412-322fcaa069b4}</ProjectGuid>
+    <RootNamespace>VVerse</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>VVerse</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir>$(MSBuildProjectDirectory)\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(MSBuildProjectDirectory)\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>C:\VulkanSDK\1.4.357.0\include;extern;extern/imgui;extern\slang\include;extern\NRD\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.4.357.0\Lib;slang\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>C:\VulkanSDK\1.4.357.0\include;extern;extern/imgui;extern\slang\include;extern\NRD\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.4.357.0\Lib;slang\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>extern\Rtxdi\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;TINYGLTF3_ENABLE_FS;GLM_COMPONENT_ONLY_XYZW;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <!-- extern\GLFW\glfw3.lib is a prebuilt Release-CRT binary (embeds /DEFAULTLIB:MSVCRT);
+           this Debug config links MSVCRTD (/MDd). Drop GLFW's forced default so the linker
+           uses our actual Debug CRT instead of warning about the conflict. -->
+      <IgnoreSpecificDefaultLibraries>MSVCRT</IgnoreSpecificDefaultLibraries>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>extern\Rtxdi\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;TINYGLTF3_ENABLE_FS;GLM_COMPONENT_ONLY_XYZW;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="3DBSPLevel.cpp" />
+    <ClCompile Include="AppendArena.cpp" />
+    <ClCompile Include="AppendArenaTests.cpp" />
+    <ClCompile Include="CameraComponent.cpp" />
+    <ClCompile Include="extern\imgui\imgui_stdlib.cpp" />
+    <ClCompile Include="LightComponent.cpp" />
+    <ClCompile Include="Platform.cpp" />
+    <ClCompile Include="SceneTests.cpp" />
+    <ClCompile Include="MaterialTextureTests.cpp" />
+    <ClCompile Include="ObjManagerTests.cpp" />
+    <ClCompile Include="ASCIIFile.cpp" />
+    <ClCompile Include="BSPEntityParser.cpp" />
+    <ClCompile Include="Buffer.cpp" />
+    <ClCompile Include="DeferredRelease.cpp" />
+    <ClCompile Include="DescriptorHeap.cpp" />
+    <ClCompile Include="EventManager.cpp" />
+    <ClCompile Include="extern\hash-library\sha256.cpp" />
+    <ClCompile Include="extern\ImGuizmo.cpp" />
+    <ClCompile Include="extern\Rtxdi\Source\ReSTIRDI.cpp" />
+    <ClCompile Include="extern\Rtxdi\Source\RtxdiUtils.cpp" />
+    <ClCompile Include="extern\imgui\backends\imgui_impl_glfw.cpp" />
+    <ClCompile Include="extern\imgui\backends\imgui_impl_vulkan.cpp" />
+    <ClCompile Include="extern\imgui\imgui.cpp" />
+    <ClCompile Include="extern\imgui\imgui_draw.cpp" />
+    <ClCompile Include="extern\imgui\imgui_tables.cpp" />
+    <ClCompile Include="extern\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="extern\tinygltf\tiny_gltf_v3.c" />
+    <ClCompile Include="extern\volk.c" />
+    <ClCompile Include="GlmMathTests.cpp" />
+    <ClCompile Include="IBLEnvironment.cpp" />
+    <ClCompile Include="IniArchive.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="RenderComponent.cpp" />
+    <ClCompile Include="Selection.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="NrdIntegration.cpp" />
+    <ClCompile Include="TaaResolve.cpp" />
+    <ClCompile Include="ObjManager.cpp" />
+    <ClCompile Include="Parse.cpp" />
+    <ClCompile Include="Reflection.cpp" />
+    <ClCompile Include="RelativeMouseInput.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="RhiTests.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="ShaderCache.cpp" />
+    <ClCompile Include="TestFramework.cpp" />
+    <ClCompile Include="TestMode.cpp" />
+    <ClCompile Include="tg3_gltf_loader.cpp" />
+    <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="WindowPersist.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+    <None Include="CONTRIBUTING.md" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\BoilingFilter.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\InitialSampling.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\PairwiseStreaming.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\Reservoir.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\ReservoirStorage.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\SpatialResampling.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\SpatioTemporalResampling.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\DI\TemporalResampling.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\BoilingFilter.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\BrdfRaySample.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\Checkerboard.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\Color.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\Math.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\RandomSamplerPerPassSeeds.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\RandomSamplerState.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\ReservoirAddressing.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\SampledLightData.hlsli" />
+    <None Include="extern\Rtxdi\Include\Rtxdi\Utils\TypePacking.hlsli" />
+    <None Include="readme.md" />
+    <None Include="shaders\interaction.slang" />
+    <None Include="shaders\laser.slang" />
+    <None Include="shaders\mathlib.slang" />
+    <None Include="shaders\nrd_pack.slang" />
+    <None Include="shaders\nrd_prepare.slang" />
+    <None Include="shaders\nrd_resolve.slang" />
+    <None Include="shaders\post.slang" />
+    <None Include="shaders\ray.slang" />
+    <None Include="shaders\s2h_3d.slang" />
+    <None Include="shaders\shader.comp.slang" />
+    <None Include="shaders\shader.rast.slang" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="3DBSPLevel.h" />
+    <ClInclude Include="AABB3.h" />
+    <ClInclude Include="AppendArena.h" />
+    <ClInclude Include="AppendArenaTests.h" />
+    <ClInclude Include="CameraComponent.h" />
+    <ClInclude Include="extern\imgui\imgui_stdlib.h" />
+    <ClInclude Include="LightComponent.h" />
+    <ClInclude Include="Platform.h" />
+    <ClInclude Include="SceneTests.h" />
+    <ClInclude Include="MaterialTextureTests.h" />
+    <ClInclude Include="ObjManagerTests.h" />
+    <ClInclude Include="ASCIIFile.h" />
+    <ClInclude Include="BSPEntityParser.h" />
+    <ClInclude Include="Buffer.h" />
+    <ClInclude Include="DeferredRelease.h" />
+    <ClInclude Include="DescriptorHeap.h" />
+    <ClInclude Include="EventManager.h" />
+    <ClInclude Include="extern\GLFW\glfw3.h" />
+    <ClInclude Include="extern\GLFW\glfw3native.h" />
+    <ClInclude Include="extern\hash-library\sha256.h" />
+    <ClInclude Include="extern\ImGuizmo.h" />
+    <ClInclude Include="extern\Rtxdi\Include\Rtxdi\DI\ReSTIRDI.h" />
+    <ClInclude Include="extern\Rtxdi\Include\Rtxdi\DI\ReSTIRDIParameters.h" />
+    <ClInclude Include="extern\Rtxdi\Include\Rtxdi\RtxdiParameters.h" />
+    <ClInclude Include="extern\Rtxdi\Include\Rtxdi\RtxdiTypes.h" />
+    <ClInclude Include="extern\Rtxdi\Include\Rtxdi\RtxdiUtils.h" />
+    <ClInclude Include="extern\imgui\backends\imgui_impl_glfw.h" />
+    <ClInclude Include="extern\imgui\backends\imgui_impl_vulkan.h" />
+    <ClInclude Include="extern\imgui\imconfig.h" />
+    <ClInclude Include="extern\imgui\imgui.h" />
+    <ClInclude Include="extern\imgui\imgui_internal.h" />
+    <ClInclude Include="extern\imgui\imstb_textedit.h" />
+    <ClInclude Include="extern\slang\include\slang-com-helper.h" />
+    <ClInclude Include="extern\slang\include\slang-com-ptr.h" />
+    <ClInclude Include="extern\slang\include\slang-cpp-host-prelude.h" />
+    <ClInclude Include="extern\slang\include\slang-cpp-prelude.h" />
+    <ClInclude Include="extern\slang\include\slang-cpp-scalar-intrinsics.h" />
+    <ClInclude Include="extern\slang\include\slang-cpp-types-core.h" />
+    <ClInclude Include="extern\slang\include\slang-cpp-types.h" />
+    <ClInclude Include="extern\slang\include\slang-cuda-prelude.h" />
+    <ClInclude Include="extern\slang\include\slang-deprecated.h" />
+    <ClInclude Include="extern\slang\include\slang-gfx.h" />
+    <ClInclude Include="extern\slang\include\slang-hlsl-prelude.h" />
+    <ClInclude Include="extern\slang\include\slang-image-format-defs.h" />
+    <ClInclude Include="extern\slang\include\slang-llvm.h" />
+    <ClInclude Include="extern\slang\include\slang-tag-version.h" />
+    <ClInclude Include="extern\slang\include\slang-torch-prelude.h" />
+    <ClInclude Include="extern\slang\include\slang.h" />
+    <ClInclude Include="extern\NRD\include\NRD.h" />
+    <ClInclude Include="extern\NRD\include\NRDDescs.h" />
+    <ClInclude Include="extern\NRD\include\NRDSettings.h" />
+    <ClInclude Include="extern\tinygltf\tinygltf_json.h" />
+    <ClInclude Include="extern\tinygltf\tiny_gltf_v3.h" />
+    <ClInclude Include="extern\vk_framework.h" />
+    <ClInclude Include="extern\vk_mem_alloc.h" />
+    <ClInclude Include="extern\volk.h" />
+    <ClInclude Include="global.h" />
+    <ClInclude Include="GlmMathTests.h" />
+    <ClInclude Include="IBLEnvironment.h" />
+    <ClInclude Include="IniArchive.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="RenderComponent.h" />
+    <ClInclude Include="Plane3.h" />
+    <ClInclude Include="Selection.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="App.h" />
+    <ClInclude Include="NrdIntegration.h" />
+    <ClInclude Include="TaaResolve.h" />
+    <ClInclude Include="GBufferTarget.h" />
+    <ClInclude Include="ObjManager.h" />
+    <ClInclude Include="Parse.h" />
+    <ClInclude Include="Reflection.h" />
+    <ClInclude Include="RelativeMouseInput.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="RhiTests.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="ShaderCache.h" />
+    <ClInclude Include="shaders\shader_io.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="TestFramework.h" />
+    <ClInclude Include="TestMode.h" />
+    <ClInclude Include="Timer.h" />
+    <ClInclude Include="Transform.h" />
+    <ClInclude Include="tg3_gltf_loader.h" />
+    <ClInclude Include="vulkanBase.h" />
+    <ClInclude Include="WindowPersist.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="extern\GLFW\glfw3.lib" />
+    <Library Include="extern\slang\lib\gfx.lib" />
+    <Library Include="extern\slang\lib\slang-compiler.lib" />
+    <Library Include="extern\slang\lib\slang-rt.lib" />
+    <Library Include="extern\slang\lib\slang.lib" />
+    <!-- Unlike the other prebuilt libs above (all Release-CRT only, tolerated via
+         IgnoreSpecificDefaultLibraries=MSVCRT for glfw3.lib), NRD.lib pulls in enough of its own
+         object code (RuntimeLibrary/_ITERATOR_DEBUG_LEVEL are embedded per-.obj and enforced by
+         the linker, LNK2038, regardless of API surface) that it needs a real per-config match;
+         both configs are vendored under extern\NRD\lib\{Debug,Release}. ShaderMakeBlob.lib is
+         NRD's own internal dependency (its CMake build links the "NRD" target against it
+         separately; not folded into NRD.lib itself despite NRD_STATIC_LIBRARY=ON). -->
+    <Library Include="extern\NRD\lib\Debug\NRD.lib" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+    <Library Include="extern\NRD\lib\Debug\ShaderMakeBlob.lib" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+    <Library Include="extern\NRD\lib\Release\NRD.lib" Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+    <Library Include="extern\NRD\lib\Release\ShaderMakeBlob.lib" Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VVerse.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shaders\s2h\s2h.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\s2h\s2h_3d.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\s2h\s2h_glsl.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\s2h\s2h_scatter.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="VVerseTestReport.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

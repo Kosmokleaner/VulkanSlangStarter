@@ -1,0 +1,13 @@
+.vs
+x64
+VulkanEngine/x64
+imgui.ini
+VVerse.txt
+Settings.ini
+/VVerseTestReport.txt
+Cache/ShaderCache.dat
+/enc_temp_folder
+scene.aa
+
+run_output.log
+run_output2.log

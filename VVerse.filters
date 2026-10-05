@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="VVerse.cpp" />
+    <ClCompile Include="extern\volk.c">
+      <Filter>extern</Filter>
+    </ClCompile>
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="extern\imgui\imgui.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_widgets.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_tables.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_draw.cpp">
+      <Filter>extern\imgui</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="readme.md" />
+    <None Include=".gitignore">
+      <Filter>Hidden</Filter>
+    </None>
+    <None Include="shaders\shader.comp.slang">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shaders\shader.rast.slang">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="CONTRIBUTING.md">
+      <Filter>Hidden</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="extern">
+      <UniqueIdentifier>{f045985f-4d7d-4456-a257-61a30bbe0406}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\imgui">
+      <UniqueIdentifier>{34f8f9ad-c680-4f8b-93f8-6eaef9c25ccd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\glfw">
+      <UniqueIdentifier>{d2f94799-4e7c-497a-8e91-e8fd91dd06f5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hidden">
+      <UniqueIdentifier>{acbb09c9-bbf3-4f64-8835-ba57fe5f8c93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="extern\slang">
+      <UniqueIdentifier>{56377846-44db-4bb8-8e1b-3d6a96a5441c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{d0370f96-4a32-4fa1-9dfc-80952b35ec9f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="extern\vk_framework.h">
+      <Filter>extern</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\vk_mem_alloc.h">
+      <Filter>extern</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\volk.h">
+      <Filter>extern</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imconfig.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imgui.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imgui_internal.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\backends\imgui_impl_glfw.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\backends\imgui_impl_vulkan.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GLFW\glfw3.h">
+      <Filter>extern\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GLFW\glfw3native.h">
+      <Filter>extern\glfw</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imstb_textedit.h">
+      <Filter>extern\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-com-helper.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-com-ptr.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-host-prelude.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-prelude.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-scalar-intrinsics.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-types.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-types-core.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cuda-prelude.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-deprecated.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-gfx.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-hlsl-prelude.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-image-format-defs.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-llvm.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-tag-version.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-torch-prelude.h">
+      <Filter>extern\slang</Filter>
+    </ClInclude>
+    <ClInclude Include="VVerse.h" />
+    <ClInclude Include="shaders\shader_io.h">
+      <Filter>shaders</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="extern\GLFW\glfw3.lib">
+      <Filter>extern\glfw</Filter>
+    </Library>
+    <Library Include="extern\GLFW\glfw3dll.lib">
+      <Filter>extern\glfw</Filter>
+    </Library>
+    <Library Include="extern\slang\lib\gfx.lib">
+      <Filter>extern\slang</Filter>
+    </Library>
+    <Library Include="extern\slang\lib\slang.lib">
+      <Filter>extern\slang</Filter>
+    </Library>
+    <Library Include="extern\slang\lib\slang-compiler.lib">
+      <Filter>extern\slang</Filter>
+    </Library>
+    <Library Include="extern\slang\lib\slang-rt.lib">
+      <Filter>extern\slang</Filter>
+    </Library>
+  </ItemGroup>
+</Project>
