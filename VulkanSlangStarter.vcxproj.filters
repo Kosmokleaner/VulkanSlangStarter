@@ -1,0 +1,248 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <FxCompile Include="shaders\s2h\s2h.hlsl">
+      <Filter>Shaders\s2h</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\s2h\s2h_3d.hlsl">
+      <Filter>Shaders\s2h</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\s2h\s2h_glsl.hlsl">
+      <Filter>Shaders\s2h</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\s2h\s2h_scatter.hlsl">
+      <Filter>Shaders\s2h</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CameraComponent.cpp" />
+    <ClCompile Include="Platform.cpp" />
+    <ClCompile Include="ASCIIFile.cpp" />
+    <ClCompile Include="Buffer.cpp" />
+    <ClCompile Include="DeferredRelease.cpp" />
+    <ClCompile Include="DescriptorHeap.cpp" />
+    <ClCompile Include="EventManager.cpp" />
+    <ClCompile Include="IniArchive.cpp" />
+    <ClCompile Include="Material.cpp" />
+    <ClCompile Include="RenderComponent.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="App.cpp" />
+    <ClCompile Include="ObjManager.cpp" />
+    <ClCompile Include="Parse.cpp" />
+    <ClCompile Include="Reflection.cpp" />
+    <ClCompile Include="RelativeMouseInput.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="ShaderCache.cpp" />
+    <ClCompile Include="Timer.cpp" />
+    <ClCompile Include="WindowPersist.cpp" />
+    <ClCompile Include="extern\imgui\imgui.cpp">
+      <Filter>external\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_draw.cpp">
+      <Filter>external\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\backends\imgui_impl_glfw.cpp">
+      <Filter>external\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\backends\imgui_impl_vulkan.cpp">
+      <Filter>external\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_stdlib.cpp">
+      <Filter>external\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_tables.cpp">
+      <Filter>external\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\imgui\imgui_widgets.cpp">
+      <Filter>external\ImGUI</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\volk.c">
+      <Filter>external\Vulkan</Filter>
+    </ClCompile>
+    <ClCompile Include="extern\hash-library\sha256.cpp">
+      <Filter>external\hash-library</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AABB3.h" />
+    <ClInclude Include="CameraComponent.h" />
+    <ClInclude Include="Platform.h" />
+    <ClInclude Include="ASCIIFile.h" />
+    <ClInclude Include="Buffer.h" />
+    <ClInclude Include="DeferredRelease.h" />
+    <ClInclude Include="DescriptorHeap.h" />
+    <ClInclude Include="EventManager.h" />
+    <ClInclude Include="extern\GLFW\glfw3.h" />
+    <ClInclude Include="extern\GLFW\glfw3native.h" />
+    <ClInclude Include="extern\imgui\imconfig.h" />
+    <ClInclude Include="extern\imgui\imstb_textedit.h" />
+    <ClInclude Include="global.h" />
+    <ClInclude Include="IniArchive.h" />
+    <ClInclude Include="Material.h" />
+    <ClInclude Include="RenderComponent.h" />
+    <ClInclude Include="Plane3.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="App.h" />
+    <ClInclude Include="ObjManager.h" />
+    <ClInclude Include="Parse.h" />
+    <ClInclude Include="Reflection.h" />
+    <ClInclude Include="RelativeMouseInput.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="ShaderCache.h" />
+    <ClInclude Include="shaders\shader_io.h" />
+    <ClInclude Include="Shader.h" />
+    <ClInclude Include="Timer.h" />
+    <ClInclude Include="Transform.h" />
+    <ClInclude Include="WindowPersist.h" />
+    <ClInclude Include="extern\imgui\imgui.h">
+      <Filter>external\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\backends\imgui_impl_glfw.h">
+      <Filter>external\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\backends\imgui_impl_vulkan.h">
+      <Filter>external\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imgui_internal.h">
+      <Filter>external\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imgui_stdlib.h">
+      <Filter>external\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-com-helper.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-com-ptr.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-host-prelude.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-prelude.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-scalar-intrinsics.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-types.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cpp-types-core.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-cuda-prelude.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-deprecated.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-gfx.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-hlsl-prelude.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-image-format-defs.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-llvm.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-tag-version.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\slang\include\slang-torch-prelude.h">
+      <Filter>external\Slang</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\vk_framework.h">
+      <Filter>external\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\vk_mem_alloc.h">
+      <Filter>external\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\volk.h">
+      <Filter>external\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\hash-library\sha256.h">
+      <Filter>external\hash-library</Filter>
+    </ClInclude>
+    <ClInclude Include="vulkanBase.h">
+      <Filter>external\Vulkan</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="extern\GLFW\glfw3.lib" />
+    <Library Include="extern\slang\lib\gfx.lib" />
+    <Library Include="extern\slang\lib\slang.lib">
+      <Filter>external\Slang</Filter>
+    </Library>
+    <Library Include="extern\slang\lib\slang-compiler.lib">
+      <Filter>external\Slang</Filter>
+    </Library>
+    <Library Include="extern\slang\lib\slang-rt.lib">
+      <Filter>external\Slang</Filter>
+    </Library>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VulkanSlangStarter.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+    <None Include="CONTRIBUTING.md" />
+    <None Include="readme.md" />
+    <None Include="shaders\laser.slang" />
+    <None Include="shaders\shader.comp.slang">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\shader.rast.slang">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\s2h_3d.slang">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\post.slang">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\ray.slang">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\interaction.slang">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\mathlib.slang">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="external">
+      <UniqueIdentifier>{9edb3834-9b66-4c29-8e47-1b9859b7a83f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\ImGUI">
+      <UniqueIdentifier>{fc99cf19-2248-4226-974d-58536fba4247}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\Slang">
+      <UniqueIdentifier>{3b633fdd-263a-49a0-be1f-c408f0f9b307}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{aa02046f-6db3-44c0-bad0-43844d811e16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\s2h">
+      <UniqueIdentifier>{fe5619b1-4efb-4581-970e-c3ee03745a71}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\Vulkan">
+      <UniqueIdentifier>{0f16121f-4826-44ff-a155-bb33448ca498}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\hash-library">
+      <UniqueIdentifier>{90e8dc46-b9e7-4847-a948-01234d179191}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

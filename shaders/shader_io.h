@@ -221,11 +221,6 @@ struct SceneInfo
 	float3 fogColor;
 	float fogDensity;
 
-	// world space
-	float3 laserPos;
-	// in radiants
-	float laserAngle;
-
 	// Henyey-Greenstein asymmetry (-1..1): >0 favors forward scattering (bright halo looking
 	// toward a light through the fog), <0 favors backscattering (toward the viewer), 0 isotropic.
 	float fogAsymmetry;
@@ -261,59 +256,8 @@ struct SceneInfo
 	// guessing the right constant blind. See g_lightmapIntensity (App.cpp).
 	float lightmapIntensity;
 
-	// FLT_MAX, FLT_MAX if not valid
-	float2 pxMousePos;
-	// bit 0: LMB, bit 31:Ctrl
-	uint mouseButtons;
-	float exposureMul;
-
 	float zFar;
-	float laserIntensity;
 
-	// Image-based lighting (shader.rast.slang only, for now -- see IBLEnvironment.h). Heap indices
-	// for TextureCube.Handle(uint2(index, 0)); iblSpecularMipCount is the specular map's real mip
-	// count (roughness 0 = mip 0, increasing roughness maps toward the last mip -- see
-	// fragmentMain's own comment for the current, deliberately simple linear formula).
-	uint enableIBL;
-	uint iblSpecularHeapIndex;
-	uint iblDiffuseHeapIndex;
-	uint iblSpecularMipCount;
-
-	// Custom TAA resolve (taa_resolve.slang), see its own header comment. Heap indices (bindless,
-	// Texture2D/RWTexture2D.Handle(uint2(index,0))) for: this frame's raw jittered color and depth
-	// (both from m_renderTarget -- depth only meaningful when rayTracing==0, see taaMotionVector's
-	// comment), ray tracing's own g_gbufferMotionVector (only meaningful when rayTracing!=0, reused
-	// read-only here instead of recomputing it), and the two ping-pong history buffers -- which one
-	// is "this frame's history to read" vs "this frame's resolved output to write" swaps every frame
-	// (see g_taaHistoryIndex, App.cpp).
-	uint taaCurrentColorHeapIndex;
-	uint taaDepthHeapIndex;
-	uint taaMotionVectorHeapIndex;
-	uint taaHistoryReadHeapIndex;
-	uint taaHistoryWriteHeapIndex;
-	// 0 on the first frame after start/resize/scene reload -- nothing valid to reproject yet, so
-	// taa_resolve.slang just copies the current frame through unblended.
-	uint taaHistoryValid;
-	// Real dimensions of the taaHistoryRead/WriteHeapIndex images -- NOT the same as `resolution`
-	// above. Those are grow-only (EnsureTaaHistoryCapacity, App.cpp), sized to the largest
-	// viewport ever requested, while `resolution` is today's (possibly smaller) viewport. A
-	// Texture2D.SampleLevel() UV is normalized against the texture's own real size, so computing it
-	// from `resolution` instead of this reads the wrong texel -- confirmed live as a resize-dependent
-	// repeating/mis-scaled pattern in the resolved image (taa_resolve.slang's history sample silently
-	// landing in the stale leftover region beyond the currently-written sub-rect, or wrapping via the
-	// sampler's REPEAT addressing).
-	uint taaHistoryCapacityWidth;
-	uint taaHistoryCapacityHeight;
-	// History/current blend factor, live-tunable (Settings window, g_taaHistoryWeight) -- see its own
-	// comment for why this isn't a fixed shader constant.
-	float taaHistoryWeight;
-	// Post-blend unsharp-mask strength, live-tunable (Settings window, g_taa.sharpenAmount) -- see
-	// taa_resolve.slang's own use of this for why: the history blend above is inherently a low-pass
-	// filter (bilinear-resampled, blended frame over frame), and neither this nor a sampler mip bias
-	// (createDescriptorHeap's own comment) can fully counteract that on its own -- the bias only
-	// sharpens what the CURRENT frame's raw texture sample looks like, not the temporally-blended
-	// result actually displayed.
-	float taaSharpenAmount;
 };
 
 struct RayPushData

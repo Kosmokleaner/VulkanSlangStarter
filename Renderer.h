@@ -67,21 +67,7 @@ public:
 	// either array correctly.
 	VkImageView m_rtTextureViews[shaderio::kMaxRayTracingTextures]{};
 
-#if USE_RAY_TRACING
-	// Device-wide ray tracing pipeline properties (shader group handle size/alignment, etc.),
-	// queried once in init(). Shared by every ray tracing Shader instance's SBT layout math
-	// (Shader::dispatchRays) -- it's a property of the physical device, not of any one pipeline.
-	VkPhysicalDeviceRayTracingPipelinePropertiesKHR m_rtProps{};
-#endif
-
 	void init(VkPhysicalDevice physicalDevice, VkCommandBuffer cmd);
-
-#if USE_RAY_TRACING
-	// Rebuilds the TLAS for frameSlot from the scene's current instance transforms. Safe to call
-	// every frame without stalling the GPU: see TlasSlot's comment for why.
-	// @param frameSlot: m_swapchain.getFrameResourceIndex(), same slot m_frameData is indexed by.
-	void createTopLevelAS(VulkanContext& vulkanContext, Scene& scene, uint32 frameSlot);
-#endif
 
 	// @param device must not be 0
 	void deinit(VkDevice device, utils::ResourceAllocator& allocator);

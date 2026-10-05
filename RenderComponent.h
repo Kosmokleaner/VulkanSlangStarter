@@ -33,11 +33,7 @@ public:
 	// constructor
 	// @param inFilePath name or filepath e.g. "resources/test.glb", must not be 0
 	RenderComponent(const char* inFilePath, const float meshScale = 1.0f);
-	// @param extraTransform applied to every loaded vertex's position/normal/tangent -- e.g. to
-	// convert the file's authored coordinate/up-axis convention into this engine's space.
-	// Defaults to identity (no-op); the caller decides the fixup, e.g. rotate -90 degrees around
-	// X for a typical Y-up glTF asset (see the call site in App.cpp).
-	void load(VulkanContext& vulkanContext, const glm::mat4& extraTransform = glm::mat4(1.0f));
+
 	// Y is up, around 0,0,0. material must be valid -- every mesh always carries a material now,
 	// see m_primitiveMaterials.
 	void createPlane(VulkanContext& vulkanContext, float halfSize, CMatHandle material);
@@ -128,10 +124,3 @@ public:
 };
 
 extern CObjManager<CRenderCompHandle, RenderComponent> g_MeshManager;
-
-
-void saveMeshes(TokenAppendArena& arena);
-// Sets a single member of ref (cmd->memberIndex says which) while loading a saved scene -- called
-// from AppendArena.cpp's ATokenCmdSetMember::execute(), once per member, once per mesh. See
-// AppendArena.h's top-of-file backward-compatibility comment before changing memberIndex mappings.
-void load(RenderComponent& ref, ATokenCmdSetMember* cmd, const ArenaTokenRange& inoutRange, const HandleRemapTable& remapping);

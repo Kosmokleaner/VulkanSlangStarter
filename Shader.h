@@ -56,32 +56,6 @@ public:
 	virtual void deinit(EventContext& context);
 	virtual void reload(EventContext& context);
 
-	// Ray tracing only, called explicitly by name (e.g. g_ray.updateRayDescriptorSet(...)) from
-	// App.cpp, the same way g_gfx/g_post are bound explicitly in recordGraphicsCommands.
-	// Traditional (non-heap) binding for the closest-hit shader's texture lookup --
-	// VK_EXT_descriptor_heap can't be used here because a descriptor-heap pipeline requires
-	// layout == VK_NULL_HANDLE (VUID-VkRayTracingPipelineCreateInfoKHR-flags-11311), which is
-	// incompatible with the TLAS's traditional descriptor set binding 0.
-	// gbufferAlbedoView/gbufferNormalRoughnessView/gbufferViewZView/gbufferMotionVectorView: bindings
-	// 5-8, the G-buffer render targets ray.slang's raygen shader writes via RWTexture2D (see
-	// App.cpp's g_gbufferAlbedo etc.) -- unused by any shader but g_ray, but every ray
-	// tracing Shader still needs a valid view bound here (no PARTIALLY_BOUND flag on these bindings).
-	// iblSpecularCubeView: binding 9, the IBL environment cubemap (see IBLEnvironment.h), sampled by
-	// rayMissMain (getSkyColor(), ray.slang) for the skybox and every bounce/shadow ray that escapes
-	// to open sky.
-	void updateRayDescriptorSet(VkDevice device, VkAccelerationStructureKHR tlas, VkImageView outputView,
-		VkBuffer sceneBuffer, const VkImageView* textureViews, uint32 textureViewCount, VkSampler sampler, uint32 frameSlot,
-		VkImageView gbufferAlbedoView, VkImageView gbufferNormalRoughnessView, VkImageView gbufferViewZView, VkImageView gbufferMotionVectorView,
-		VkImageView iblSpecularCubeView);
-	// Lazily builds this shader's own SBT (once), binds its pipeline and this frame-slot's
-	// descriptor set (see updateRayDescriptorSet), and issues vkCmdTraceRaysKHR. Called explicitly
-	// by name (e.g. g_ray.dispatchRayTracing(...)) from App::dispatchRayTracing().
-	// pushData is caller-built per call, so a second ray tracing shader can target a different
-	// output buffer (pushData.outputAddress/prevOutputAddress) while sharing the rest of the scene.
-	// @return false if not ready to dispatch (e.g. failed to compile); caller surfaces that.
-	bool dispatchRayTracing(VkCommandBuffer cmd, uint32 frameSlot, VkCommandPool transientCmdPool,
-		VkExtent2D size, const shaderio::RayPushData& pushData);
-
 private:
 	void createGfx(EventContext& context);
 	void createRay(EventContext& context);

@@ -3,19 +3,9 @@
 #include "vulkanBase.h"
 #include "EventManager.h"
 
-// RTXDI's own parameter structs (global namespace, not wrapped in `namespace rtxdi`) --
-// included here, at global scope, before the shaderio namespace block below so
-// shaders/rtxdi_io.h's un-namespaced RTXDI_* references resolve to a single global definition
-// (its own #include of these same headers, inside `namespace shaderio`, is then a no-op via the
-// normal #ifndef header guards).
-#include "Rtxdi/RtxdiParameters.h"
-#include "Rtxdi/DI/ReSTIRDIParameters.h"
-
 namespace shaderio {  // Shader IO namespace -- shared layout between C++ and shaders
 	using namespace glm;  // GLSL-style types without the glm:: prefix inside the namespace
 #include "shaders/shader_io.h"
-#include "shaders/rtxdi_io.h"
-#include "shaders/gi_io.h"
 }  // namespace shaderio
 
 

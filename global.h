@@ -2,9 +2,6 @@
 
 #pragma once
 
-// 0:no (for testing and to document what is needed for ray tracing, useful in future), 1:yes (actual rendering still depends on runtime flag)
-#define USE_RAY_TRACING 1
-
 // 1..1000 or more, larger is better for less noise, too large could cause float precision issues after some long time
 #define MAX_TEMPORAL_ACCUM 1000
 //

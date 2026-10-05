@@ -15,27 +15,12 @@ public:
 	// check) -- a real Vulkan device/swapchain/render loop still exists and runs exactly the same,
 	// there's just nothing displayed on screen for it. Used by --selftest so a scripted run doesn't
 	// pop up and steal focus; left false for the normal interactive app.
-	App(VkExtent2D size = { 800, 600 }, bool hidden = false);
+	App(VkExtent2D size = { 800, 600 });
 	~App();
 
 	void run();
 
-	// Deterministic GPU self-test (VVerse.exe --selftest, see tests::WantsSelfTestMode, TestMode.h):
-	// this App is already fully init()'d by the time a caller can reach this (init() runs
-	// at the end of the constructor, same as the normal interactive path) -- drives the SAME run()
-	// loop through a fixed script (setup1/setup2/save/load/screenshot/compare, each feature used
-	// twice -- see selfTestTick()'s own comment) via a hook called once per rendered frame, instead
-	// of a separate render path.
-	// @return process exit code (0 = every check passed).
-	int runSelfTest();
-
 private:
-	// Called once per frame from run()'s own loop, only when g_selfTest.active -- advances the
-	// self-test script by exactly one step every kSelfTestSettleFrames-th call (see its own
-	// definition, App.cpp), closing the window (glfwSetWindowShouldClose) once the
-	// script reaches its last step.
-	void selfTestTick();
-
 	// Main initialization sequence -- see the body's "Resource model" comment for why each
 	// resource class uses the binding mechanism it does.
 	void init();
@@ -57,50 +42,6 @@ private:
 	// plus the timeline semaphore to signal when the frame is completed. Moves to the next frame.
 	void endFrame(VkCommandBuffer cmd);
 
-#if USE_RAY_TRACING
-	// (Re)allocates both g_outputBuffer slots if pixelCount exceeds the current capacity
-	// (grow-only -- see onViewportSizeChange's call site for why), zero-filling each one via cmd
-	// so an immediately-following frame with "Temporal Fade" turned up blends against defined
-	// data instead of whatever was in the freshly (re)allocated GPU memory. No-op otherwise.
-	// @param cmd: an already-recording command buffer; the caller submits it.
-	void EnsureOutputBufferCapacity(VkCommandBuffer cmd, VkDeviceSize pixelCount);
-
-	// (Re)creates g_restirDIContext and (re)allocates its buffers (grow-only, same philosophy as
-	// EnsureOutputBufferCapacity) if width/height exceed the current RTXDI capacity. Manages its
-	// own single-time command buffer internally (unlike EnsureOutputBufferCapacity) -- callers must
-	// ensure no in-flight GPU work still references the old g_rtxdiReservoirs/g_rtxdiNormals before
-	// calling this (see onViewportSizeChange's vkDeviceWaitIdle -- this must NOT be called mid-frame
-	// from updateSceneBuffer() the way it originally was, which raced a still-executing previous
-	// frame's ray dispatch against these buffers being freed/reallocated underneath it and reliably
-	// caused VK_ERROR_DEVICE_LOST). No-op if width/height are already within capacity.
-	void EnsureRtxdiCapacity(uint32 width, uint32 height);
-
-	// (Re)creates ReSTIR GI's own reservoir buffer (g_giReservoirs) if width/height exceed current
-	// capacity -- same grow-only philosophy and in-flight-safety requirement as EnsureRtxdiCapacity
-	// (only call from init()/onViewportSizeChange(), never mid-frame). No-op if width/height are
-	// already within capacity. Independent of EnsureRtxdiCapacity (own buffer, own capacity
-	// tracking) since ReSTIR GI and RTXDI DI are otherwise unrelated features.
-	void EnsureGIReservoirCapacity(uint32 width, uint32 height);
-
-	// (Re)creates the G-buffer render targets (albedo, normal+roughness, view-space depth, motion
-	// vector -- see the globals declared near g_gbufferAlbedo in App.cpp) if width/height
-	// exceed current capacity, same grow-only philosophy and in-flight-safety requirement as
-	// EnsureRtxdiCapacity (only call from init()/onViewportSizeChange(), never mid-frame). No-op if
-	// width/height are already within capacity.
-	void EnsureGBufferCapacity(uint32 width, uint32 height);
-
-	// What interaction.slang's mouse-pick ray found, already resolved to the current frame-in-flight
-	// slot -- see g_ReadbackMapped's own comment (App.cpp) for the readback mechanism this
-	// hides. index == -1 means nothing is under the cursor (or Ctrl/LMB wasn't held); the caller
-	// never needs to know about m_swapchain.getFrameResourceIndex() or the couple-frame read lag.
-	struct PickResult
-	{
-		int32 index = -1;     // raw entity index (scene.m_sceneObjects) or material index (g_MaterialManager)
-		bool isMaterial = false; // which of the two `index` is -- see interaction.slang's bMaterial
-	};
-	PickResult GetPickResult() const;
-#endif
-
 	// Call this function if the viewport size changes. This happens when the window is resized,
 	// or when the ImGui viewport window is resized.
 	void onViewportSizeChange(VkExtent2D size);
@@ -121,25 +62,6 @@ private:
 	// Recording the commands to render the scene (rasterizer pass + post pass). See
 	// dispatchRayTracing() for the ray tracing dispatch, called from drawFrame() before this.
 	void recordGraphicsCommands(VkCommandBuffer cmd);
-
-#if USE_RAY_TRACING
-	// Builds this frame's scene-level ray tracing state (the per-mesh {IB,VB,primitiveMaterials}
-	// address buffer and the shared push data), then explicitly dispatches each ray tracing shader
-	// by name (e.g. g_ray.dispatchRayTracing(...)), in the order written here -- no frame graph, no
-	// automatic discovery. Adding another ray tracing shader means adding its own explicit call
-	// here (see g_ray/g_gfx/g_post in App.cpp for the pattern); it can pass a different
-	// pushData.outputAddress/prevOutputAddress to target a different output buffer while still
-	// sharing pushData's sceneInfoAddress/meshBufferAddress/materialBufferAddress.
-	void dispatchRayTracing(VkCommandBuffer cmd);
-
-	// Explicitly (re)writes each ray tracing shader's descriptor set (TLAS, output image, scene
-	// buffer, textures, sampler) for one frame-in-flight slot, by name (e.g.
-	// g_ray.updateRayDescriptorSet(...)) -- they all read the same scene, per App's
-	// single-scene assumption. Called every frame (the TLAS itself is rebuilt every frame, see
-	// Renderer::createTopLevelAS) and, for every slot, right after a shader reload.
-	// @param frameSlot: m_swapchain.getFrameResourceIndex(), same slot m_frameData is indexed by.
-	void updateRayDescriptorSet(uint32 frameSlot);
-#endif
 
 	// Initialize Dear ImGui: creates the ImGui context and its GLFW/Vulkan backends, and sets up
 	// docking.

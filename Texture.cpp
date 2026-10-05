@@ -1,7 +1,6 @@
 #include "global.h"	// include first in any cpp
 #include "Texture.h"
 #include "Renderer.h"
-#include "AppendArena.h"
 #include "stb_image.h"	// implementation compiled once in App.cpp
 #include <algorithm>
 #include <cmath>
@@ -194,24 +193,6 @@ void Texture::loadFromMemory(VulkanContext& vulkanContext, const uint32_t* rgba,
 	uploadPixels(vulkanContext, width, height, (const uint8_t*)rgba, debugName);
 }
 
-/*
-void Texture::init(EventContext& context)
-{
-	if (m_loadFromFile)
-		loadFromFile(vulkanContext, el.m_name);
-}
-
-void Texture::deinit(EventContext& context)
-{
-	if (m_rtView != VK_NULL_HANDLE)
-	{
-		vkDestroyImageView(context.device, m_rtView, nullptr);
-		m_rtView = VK_NULL_HANDLE;
-	}
-	context.allocator.destroyImageResource(m_image);
-}
-*/
-
 void Texture::deinit(VkDevice device, utils::ResourceAllocator& allocator)
 {
 	if (m_rtView != VK_NULL_HANDLE)
@@ -224,110 +205,4 @@ void Texture::deinit(VkDevice device, utils::ResourceAllocator& allocator)
 	// here so isLoaded() (and this object generally) return to the same state as a freshly
 	// constructed Texture, matching Buffer::deinit()'s existing "m_data = {}" convention.
 	m_image = {};
-}
-
-void saveTextures(TokenAppendArena& arena)
-{
-	for (uint32 i = 0, count = g_TextureManager.GetElementCount(); i < count; ++i)
-	{
-		// todo: could be optimized to single function call
-		auto hnd = g_TextureManager.GetHandleByIterator(i);
-		auto& el = g_TextureManager.GetElementByIterator(i);
-
-		TypedHandle dstKey(hnd, 2);	// 2 is Texture
-
-		LOGI_AA_SAVE("Texture[%d] name=%s", dstKey.Index, el.m_name.c_str());
-
-		// todo: use reflection
-		{
-			ATokenCmdNew cmd;
-			cmd.dstKey = dstKey;
-			arena.appendCmd(cmd);
-		}
-		{
-			// todo: improve API !
-			ATokenCmdBlob blob(el.m_name.size() + 1);
-			arena.appendCmd(blob);
-
-			size_t oldSize = arena.size();
-			uint64 value0 = arena.appendString(el.m_name);
-			size_t newSize = arena.size();
-			ASSERT(newSize == oldSize + blob.count);
-
-			ATokenCmdSetMember cmd;
-			cmd.dstKey = dstKey;
-			cmd.memberIndex = 0;
-			cmd.valueOrIndexInArenaToValue = value0;
-			arena.appendCmd(cmd);
-			cmd.memberIndex = 1;
-			cmd.valueOrIndexInArenaToValue = el.m_loadFromFile;
-			arena.appendCmd(cmd);
-			cmd.memberIndex = 5;
-			cmd.valueOrIndexInArenaToValue = el.m_isSRGB;
-			arena.appendCmd(cmd);
-		}
-
-		// A file-less texture (BSP lightmap, glTF-embedded image, ...) has no filename to reload
-		// from -- save its raw decoded pixels instead, the same reason saveMeshes() saves
-		// m_sourceIndices/m_sourceVertices for a procedural mesh. loadFromFile() (memberIndex 1
-		// above) already covers the file case more compactly, so skip this there.
-		if (!el.m_loadFromFile)
-		{
-			uint32 countPixels = (uint32)el.m_sourcePixels.size();
-			uint32 sizePixels = countPixels * (uint32)sizeof(el.m_sourcePixels[0]);
-
-			// todo: improve API !
-			ATokenCmdBlob blob(sizeof(uint32) + sizePixels);
-			arena.appendCmd(blob);
-
-			size_t oldSize = arena.size();
-
-			uint64 valuePixels = arena.appendBytes(&countPixels, sizeof(countPixels));
-			// appendBytes() asserts sizeInBytes != 0 -- a file-less texture with no pixels actually
-			// cached (shouldn't normally happen, but cheap to guard) would otherwise assert here.
-			if (sizePixels)
-				arena.appendBytes(el.m_sourcePixels.data(), sizePixels);
-
-			size_t newSize = arena.size();
-			ASSERT(newSize == oldSize + blob.count);
-
-			ATokenCmdSetMember cmd;
-			cmd.dstKey = dstKey;
-			// m_sourceWidth/m_sourceHeight are plain uint32s -- get(ATokenCmdSetMember*, uint32&)
-			// reads valueOrIndexInArenaToValue as the value itself (see its definition,
-			// AppendArena.cpp), not as an arena offset to dereference. Storing arena.appendBytes()'s
-			// *return value* (an offset) here instead of the real width/height -- as this used to --
-			// silently set m_sourceWidth/m_sourceHeight to that offset (a small, unrelated integer)
-			// on load, which uploadPixels() then multiplied into a bogus width*height*4 byte span far
-			// larger than m_sourcePixels actually holds: createStagingBuffer() reading that span read
-			// off the end of the vector's allocation, an access violation confirmed live via a
-			// VS call stack landing in ResourceAllocator::createStagingBuffer.
-			cmd.memberIndex = 2;
-			cmd.valueOrIndexInArenaToValue = el.m_sourceWidth;
-			arena.appendCmd(cmd);
-			cmd.memberIndex = 3;
-			cmd.valueOrIndexInArenaToValue = el.m_sourceHeight;
-			arena.appendCmd(cmd);
-			cmd.memberIndex = 4;
-			cmd.valueOrIndexInArenaToValue = valuePixels;
-			arena.appendCmd(cmd);
-		}
-	}
-}
-
-void load(Texture& ref, ATokenCmdSetMember* cmd, const ArenaTokenRange& inoutRange, const HandleRemapTable& remapping)
-{
-	// todo: reflection with backward compatible loading
-	if (cmd->memberIndex == 0) get(cmd, inoutRange, ref.m_name);
-	else if (cmd->memberIndex == 1) get(cmd, inoutRange, ref.m_loadFromFile);
-	// memberIndex 2/3/4: raw pixel data for a file-less texture (BSP lightmap, glTF-embedded
-	// image, ...) -- see Texture::m_sourcePixels' own comment. Only present in the saved file
-	// when saveTextures() found !m_loadFromFile, same as mesh IB/VB (RenderComponent.cpp).
-	else if (cmd->memberIndex == 2) get(cmd, inoutRange, ref.m_sourceWidth);
-	else if (cmd->memberIndex == 3) get(cmd, inoutRange, ref.m_sourceHeight);
-	else if (cmd->memberIndex == 4) getVector(cmd, inoutRange, ref.m_sourcePixels);
-	// Not present in an older save file (defaults to m_isSRGB's own default, true) -- see
-	// Texture.h's m_isSRGB comment.
-	else if (cmd->memberIndex == 5) get(cmd, inoutRange, ref.m_isSRGB);
-	else ASSERT(0);
 }
