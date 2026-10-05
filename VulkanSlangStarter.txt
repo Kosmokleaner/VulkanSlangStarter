@@ -25,6 +25,22 @@ selectSwapPresentMode: eVSyncMode=2 (VSync) -> chosen=2
 Created UI descriptor pool: 130 sets (sampler=2, sampledImage=128)
 
 
-Compile 'shaders/shader.rast.slang' 'vertexMain' 'fragmentMain'
-
 selectSwapPresentMode: eVSyncMode=1 mailboxSupported=1 immediateSupported=1 -> chosen=1
+Vulkan error at D:\Github\VulkanSlangStarter\App.cpp:1737: VK_ERROR_DEVICE_LOST
+=== VK_EXT_device_fault ===
+description: 
+  address fault: type=6 address=0xe00a7dbf0 precision=+-0x10
+  address fault: type=1 address=0x116f000 precision=+-0x1000
+=== VK_NV_device_diagnostic_checkpoints: last-reached marker(s) ===
+  pipelineStage=1 marker="before ImGui_ImplVulkan_RenderDrawData"
+  pipelineStage=8192 marker="before post.slang draw"
+Vulkan error at D:\Github\VulkanSlangStarter\App.cpp:2259: VK_ERROR_DEVICE_LOST
+=== VK_EXT_device_fault ===
+description: 
+  address fault: type=6 address=0xe00a7dbf0 precision=+-0x10
+  address fault: type=1 address=0x116f000 precision=+-0x1000
+=== VK_NV_device_diagnostic_checkpoints: last-reached marker(s) ===
+  pipelineStage=1 marker="before ImGui_ImplVulkan_RenderDrawData"
+  pipelineStage=8192 marker="before post.slang draw"
+vkAcquireNextImageKHR(): Semaphore must not have any pending operations.
+The Vulkan spec states: If semaphore is not VK_NULL_HANDLE, it must not have any uncompleted signal or wait operations pending (https://docs.vulkan.org/spec/latest/chapters/VK_KHR_surface/wsi.html#VUID-vkAcquireNextImageKHR-semaphore-01779)
