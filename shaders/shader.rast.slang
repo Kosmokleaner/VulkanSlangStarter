@@ -58,7 +58,6 @@ float4x4 GetPerspMatrix()
 //	return scene.clipFromView;// bad
 
 	return ComputePerspectiveMatrix(scene.fieldOfViewDeg * PI / 180.0f, scene.resolution.x / (float) scene.resolution.y, scene.zNear, scene.zFar);
-//	return transpose(ComputePerspectiveMatrix(45.0f * PI / 180.0f, 16.0f / 9.0f, 0.1, 1000.0f));
 //	return transpose(scene.clipFromView);
 
 	// test
@@ -226,37 +225,6 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 		metallic *= mr.b;
 	}
 
-	// White (no darkening/tinting), NOT resolveTextureId's scene.texId debug fallback -- that
-	// fallback exists so a texture-less material can preview the "Image 1"/"Image 2" debug images on
-	// its ALBEDO (see its call site above), which makes sense there but not here: a lightmap is a
-	// multiplicative light/shadow term, not a color preview, and hdr below starts as
-	// "lightmap * materialColor" -- feeding it a debug image (now g_taa's own ReplaceMe checkerboard,
-	// see Renderer::init()'s comment, permanently registered at heap index 0 = scene.texId's default
-	// value) instead of a neutral 1.0 multiplied the material's own correct albedo by that
-	// checkerboard directly, confirmed live as every non-BSP material (nothing else has a real
-	// lightmap -- only a loaded BSP level's own per-surface lightmap texture ever sets
-	// materialBuffer.lightmapTextureId) rendering discolored/checkerboard-tinted. ray.slang's own
-	// equivalent lightmap line is commented out entirely for the same reason (see its own comment).
-	float3 lightmap = float3(1.0f, 1.0f, 1.0f);
-	if (materialBuffer.lightmapTextureId != kInvalidTextureId)
-	{
-		Texture2D    tex = Texture2D.Handle(uint2(materialBuffer.lightmapTextureId, 0));
-		SamplerState samp = SamplerState.Handle(uint2(0, 0));
-		lightmap = tex.Sample(samp, input.lightmapUV).rgb;
-		// Decodes the lightmap texture (uploaded as UNORM, no hardware sRGB decode -- see the
-		// lightmap Texture's own m_isSRGB=false at load time, 3DBSPLevel.cpp) as if it were
-		// sRGB-encoded data. Re-added after a live report of insufficient contrast in raster mode:
-		// exposure (g_ExposureLog) is a uniform linear scale and can't reshape contrast at all --
-		// only a nonlinear curve like this can pull shadows down relative to highlights. An earlier
-		// note recorded this as tested-and-not-helping, but that was against a DIFFERENT complaint
-		// (too much contrast) made before shader.rast.slang's tonemapper-always-on bug was fixed;
-		// that fix changes the picture enough that this is worth re-testing on its own merits.
-		lightmap = s2h_accurateSRGBToLinear(lightmap);
-		// See shader_io.h's SceneInfo::lightmapIntensity comment.
-		lightmap *= scene.lightmapIntensity;
-	}
-
-
 	// g_lights (App.cpp): [0] is always the single global light (g_lightPos/
 	// g_lightColor/g_lightIntensity), followed by every point light the loaded BSP level's "light"
 	// entities parsed into (C3DBSPLevel::m_Lights). No shadow rays here (the rasterizer has no
@@ -264,77 +232,11 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	Light* lights = (Light*)scene.lightsAddress;
 	float3 V = normalize(Origin - surfacePos);
 
-	float3 hdr = lightmap * materialColor;
-	// Baked-lightmap materials (BSP surfaces) already have every static light's contribution
-	// pre-integrated into `lightmap` -- lights[] contains those SAME lights (see this block's own
-	// comment above), so also running the per-light loop against them here would double-count.
-	// Only materials with no lightmap (materialBuffer.lightmapTextureId == kInvalidTextureId, so
-	// `lightmap` is the neutral 1.0 default set above) need real per-light shading instead.
-	if (materialBuffer.lightmapTextureId == kInvalidTextureId)
-	{
-		hdr = 0;
-		[loop]
-		for (uint li = 0; li < scene.lightCount; ++li)
-		{
-			float3 L = normalize(lights[li].position - surfacePos);
-			float3 lightColor = lights[li].color * EvalLightFalloff(length(lights[li].position - surfacePos), lights[li].radius);
-			hdr += lightColor * EvalGGXBRDF(interpolatedNormal, V, L, materialColor, metallic, max(roughness, kMinPunctualLightRoughness));
-		}
-	}
+	float3 hdr = materialColor;
 	hdr += materialBuffer.emissiveColor * materialBuffer.emissiveIntensity;
 
-
-
-	// See SceneInfo::enableTonemapper's comment -- this path never respected the checkbox at all
-	// before (post.slang's ray tracing path did), so it was always applying filmicToneMapping's
-	// contrast-boosting/shoulder-rolloff S-curve unconditionally. Confirmed live as a too-contrasty,
-	// crushed-blacks look that persisted regardless of the lightmap sRGB/intensity investigation --
-	// consistent with a tonemap curve rather than a lightmap decode issue, since a curve distorts
-	// contrast/shape while exposure (already gated to EVM_Shaded below) only scales everything
-	// uniformly and can't fix that on its own.
-	float3 ldr = scene.enableTonemapper != 0 ? filmicToneMapping(hdr) : hdr;
-
-	if (scene.visualizeMode == VisualizeMode::EEnum::EVM_NormalWS)
-	{
-		ldr = interpolatedNormal * 0.5f + 0.5f;
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_AlbedoColor)
-	{
-		ldr = materialColor;
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_PositionWS)
-	{
-		ldr = frac(surfacePos);
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_DepthNorm)
-	{
-		ldr = pow(input.position.z, float3(1 / 6.0f, 1 / 3.0f, 1 / 1.0f)); // todo
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_DepthWS)
-	{
-//		ldr = frac(payload.minT);
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_UV)
-	{
-		ldr = float3(frac(input.uv*10), 0);	// todo *10
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_LightmapUV)
-	{
-		ldr = float3(frac(input.lightmapUV * 10), 0);	// todo *10
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_MaterialID)
-	{
-		ldr = s2h_indexToColor(pushData.materialAndMeshID >> 16);
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_MeshID)
-	{
-		ldr = s2h_indexToColor(pushData.materialAndMeshID & 0xffff);
-	}
-	else if (scene.visualizeMode == VisualizeMode::EEnum::EVM_Lightmap)
-	{
-		ldr = lightmap;
-	}
-
+	float3 ldr = filmicToneMapping(hdr);
+	
 	// m_renderTarget is VK_FORMAT_R8G8B8A8_UNORM (App.cpp) -- no hardware sRGB encode on
 	// write, so it has to happen here, same as post.slang's own final output write. Previously only
 	// the EVM_Lightmap branch above did this itself and everything else (the main lit path,

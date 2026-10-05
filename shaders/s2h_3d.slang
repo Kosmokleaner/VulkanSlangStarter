@@ -58,8 +58,6 @@ float4x4 GetPerspMatrix()
 
 //	return scene.clipFromView;// bad
 
-//	return ComputePerspectiveMatrix(45.0f * PI / 180.0f, scene.resolution.x / (float)scene.resolution.y, 0.1, 1000.0f);
-//	return transpose(ComputePerspectiveMatrix(45.0f * PI / 180.0f, 16.0f / 9.0f, 0.1, 1000.0f));
 	return transpose(scene.clipFromView);
 
 	// test
