@@ -64,18 +64,6 @@ CEntityHandle g_currentCamera;
 Shader g_gfx("shaders/shader.rast.slang", "vertexMain", "fragmentMain");
 Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain");
 Shader g_s2h_3d("shaders/s2h_3d.slang", "vertexMain", "fragmentMain");
-// Ray tracing shader. Explicitly dispatched by name from App::dispatchRayTracing()/
-// updateRayDescriptorSet() below, the same way g_gfx/g_post are explicitly bound in
-// recordGraphicsCommands() -- no frame graph, no automatic discovery. Adding another ray tracing
-// shader means declaring it here (e.g. Shader g_ray2(...)) and adding its own explicit dispatch
-// call at the two call sites below; everything else (SBT, per-frame-slot descriptor set) is
-// self-contained in Shader.
-Shader g_ray("shaders/ray.slang", "rayGenMain", "rayMissMain", "rayClosestHitMain");
-Shader g_laser("shaders/laser.slang", "rayGenMain", "rayMissMain", "rayClosestHitMain");
-// Mouse-picking pass: a single, non-reflective ray through the mouse cursor (dispatched at a fixed
-// {1,1} size, see dispatchRayTracing()), writing which object is under it into the same buffer
-// g_ray writes its own output to -- see interaction.slang and kInteractionResultOffset (shader_io.h).
-Shader g_interaction("shaders/interaction.slang", "rayGenMain", "rayMissMain", "rayClosestHitMain");
 
 // Screen-space rect of the "Viewport" window's content region, captured once per frame (see the
 // mouse-position block in run()) so the gizmo (drawn later, in drawFrame()) can be positioned with

@@ -344,20 +344,6 @@ void Shader::createGfx(EventContext& context)
 	if (code[0].empty() || code[1].empty())
 		return;
 
-	/*--
-	 * Specialization constants. Two distinct VkSpecializationInfo instances, each
-	 * pointing at its own immutable VkBool32 -- the same pattern we used with
-	 * pipelines, equally valid for shader objects.
-	-*/
-//	static constexpr VkBool32      kUseTextureTrue = VK_TRUE;
-//	const VkSpecializationMapEntry specMapEntry = { .constantID = 0, .offset = 0, .size = sizeof(VkBool32) };
-//	const VkSpecializationInfo     specInfoTextured = {
-//			.mapEntryCount = 1,
-//			.pMapEntries = &specMapEntry,
-//			.dataSize = sizeof(VkBool32),
-//			.pData = &kUseTextureTrue,
-//	};
-
 	// Three unlinked shader objects. nextStage is a hint to the driver about
 	// which stage will follow at bind time -- it doesn't constrain what we
 	// can actually bind.

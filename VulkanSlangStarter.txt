@@ -1,8 +1,9 @@
-hasConsole = 1
-isDebuggerPresent = 0
-CurrentDir: 'D:\Github\VVerse'
-g_enableValidationLayers = 0
+hasConsole = 0
+isDebuggerPresent = 1
+CurrentDir: 'D:\Github\VulkanSlangStarter'
+g_enableValidationLayers = 1
 VULKAN API: 1.4
+Validation Layers: ON
 Selected GPU: NVIDIA GeForce RTX 2080
 Driver: 610.188.0
 Vulkan API: 1.4.341
@@ -24,6 +25,44 @@ selectSwapPresentMode: eVSyncMode=2 (VSync) -> chosen=2
 Created UI descriptor pool: 130 sets (sampler=2, sampledImage=128)
 
 
-g_outputBuffer initial alloc: 800x600, m_outputBufferCapacityPixels tracker = 480000
-NRD: instance created (REBLUR_DIFFUSE_SPECULAR), 14 pipelines, 13 permanent + 8 transient pooled textures
+Compile 'shaders/shader.rast.slang' 'vertexMain' 'fragmentMain'
+
+Compiler Output:
+error[E30027]: member not found
+   --> shaders\shader.rast.slang:286:12
+    |
+286 | if (scene.enableIBL != 0)
+    |           ^^^^^^^^^ 'enableIBL' is not a member of 'SceneInfo'.
+----'
+error[E30027]: member not found
+   --> shaders\shader.rast.slang:293:57
+    |
+293 | TextureCube diffCube = TextureCube.Handle(uint2(scene.iblDiffuseHeapIndex, 0));
+    |                                                       ^^^^^^^^^^^^^^^^^^^ 'iblDiffuseHeapIndex' is not a member of 'SceneInfo'.
+----'
+error[E30027]: member not found
+   --> shaders\shader.rast.slang:325:16
+    |
+325 | ldr *= scene.exposureMul;
+    |              ^^^^^^^^^^^ 'exposureMul' is not a member of 'SceneInfo'.
+----'
+error[E39999]: import failed due to compilation error
+fatal error[E40003]: compilation ceased
+abort compilation: fatal error[E40003]: compilation ceased
+
+
+Compile 'shaders/post.slang' 'vertexMain' 'fragmentMain'
+
+Compiler Output:
+error[E30027]: member not found
+   --> shaders\post.slang:437:33
+    |
+437 | linearBackground.rgb *= scene.exposureMul;
+    |                               ^^^^^^^^^^^ 'exposureMul' is not a member of 'SceneInfo'.
+----'
+error[E39999]: import failed due to compilation error
+fatal error[E40003]: compilation ceased
+abort compilation: fatal error[E40003]: compilation ceased
+
+
 selectSwapPresentMode: eVSyncMode=1 mailboxSupported=1 immediateSupported=1 -> chosen=1
