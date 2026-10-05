@@ -6,10 +6,6 @@
 #include <vector>
 
 struct VulkanContext;
-class TokenAppendArena;
-struct ATokenCmdSetMember;
-struct ArenaTokenRange;
-class HandleRemapTable;
 
 // A single loaded texture image, registered both in the raster path's bindless descriptor heap
 // (g_renderer.m_descriptorHeap) and, at the same index, in the ray tracing path's traditional
@@ -68,9 +64,6 @@ public:
 	void deinit(VkDevice device, utils::ResourceAllocator& allocator);
 
 	// interface IAppInit ====================================
-//	virtual void init(EventContext& context);
-//	virtual void deinit(EventContext& context);
-//	virtual void reload(EventContext& context) {}
 
 	// index into both the raster descriptor heap and (if < shaderio::kMaxRayTracingTextures) the
 	// ray tracing traditional texture array -- this is the value stored in MaterialData::textureId
@@ -87,23 +80,3 @@ private:
 };
 
 extern CObjManager<CTexHandle, Texture> g_TextureManager;
-
-void saveTextures(TokenAppendArena& arena);
-// Sets a single member of ref (cmd->memberIndex says which) while loading a saved scene -- called
-// from AppendArena.cpp's ATokenCmdSetMember::execute(), once per member, once per texture. See
-// AppendArena.h's top-of-file backward-compatibility comment before changing memberIndex mappings.
-void load(Texture& ref, ATokenCmdSetMember* cmd, const ArenaTokenRange& inoutRange, const HandleRemapTable& remapping);
-
-// Derives a tangent-space normal map from an albedo image's own luminance (a cheap "bump from
-// height field" approximation -- there's no real height/displacement data for BSP content to work
-// from, just the diffuse texture's own light/dark pattern) -- central-difference gradient in x/y,
-// standard height->normal formula. outNormalRGBA is little-endian-packed R8G8B8A8 (byte 0 = R, see
-// Texture::loadFromMemory's own rgba-overload comment for why), ready to hand straight to it; the
-// caller must set m_isSRGB = false first (this is direction data, not color -- see m_isSRGB's own
-// comment) and NOT renormalize any mip generated from it afterward (Texture::uploadPixels' GPU-blit
-// mip chain already doesn't -- deliberately, so each mip's normal LENGTH shrinks with how much
-// direction variance that mip averaged away, for a future Toksvig-style roughness adjustment from
-// it, instead of hiding that variance behind a renormalize step).
-// @param albedoRGBA same little-endian R8G8B8A8 byte layout, width*height*4 bytes.
-// @param strength height-gradient-to-normal-tilt scale; larger = more pronounced bump.
-void GenerateNormalMapFromLuminance(const uint8_t* albedoRGBA, uint32 width, uint32 height, float strength, std::vector<uint32>& outNormalRGBA);

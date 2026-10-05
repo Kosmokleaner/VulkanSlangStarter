@@ -430,12 +430,6 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 		ray.Direction = normalize(worldPos - S2S_CAMERA_POS());
 	}
 
-	// Exposure is a tonemapping/HDR-display control -- irrelevant (and actively misleading) for the
-	// EVM_* debug visualize modes, which show normalized/already-0..1 values (normals, roughness,
-	// raw G-buffer data, etc.), not HDR radiance.
-	if (scene.visualizeMode == VisualizeMode::EEnum::EVM_Shaded)
-		linearBackground.rgb *= scene.exposureMul;
-	
 	// Note: ui.dstColor is premultiplied
 	float4 linearColor = linearBackground * (1.0f - ui.dstColor.a) + ui.dstColor;
 

@@ -5,10 +5,6 @@
 #include <glm/glm.hpp>
 
 struct VulkanContext;
-class TokenAppendArena;
-struct ATokenCmdSetMember;
-struct ArenaTokenRange;
-class HandleRemapTable;
 
 class RenderComponent
 {

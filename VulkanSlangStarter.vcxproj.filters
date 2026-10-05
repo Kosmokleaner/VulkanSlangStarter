@@ -17,10 +17,7 @@
   <ItemGroup>
     <ClCompile Include="CameraComponent.cpp" />
     <ClCompile Include="Platform.cpp" />
-    <ClCompile Include="ASCIIFile.cpp" />
     <ClCompile Include="Buffer.cpp" />
-    <ClCompile Include="DeferredRelease.cpp" />
-    <ClCompile Include="DescriptorHeap.cpp" />
     <ClCompile Include="EventManager.cpp" />
     <ClCompile Include="IniArchive.cpp" />
     <ClCompile Include="Material.cpp" />
@@ -34,7 +31,6 @@
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="ShaderCache.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="WindowPersist.cpp" />
     <ClCompile Include="extern\imgui\imgui.cpp">
@@ -64,20 +60,26 @@
     <ClCompile Include="extern\hash-library\sha256.cpp">
       <Filter>external\hash-library</Filter>
     </ClCompile>
+    <ClCompile Include="DeferredRelease.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="DescriptorHeap.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="ShaderCache.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="ASCIIFile.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AABB3.h" />
     <ClInclude Include="CameraComponent.h" />
     <ClInclude Include="Platform.h" />
-    <ClInclude Include="ASCIIFile.h" />
     <ClInclude Include="Buffer.h" />
-    <ClInclude Include="DeferredRelease.h" />
-    <ClInclude Include="DescriptorHeap.h" />
     <ClInclude Include="EventManager.h" />
-    <ClInclude Include="extern\GLFW\glfw3.h" />
-    <ClInclude Include="extern\GLFW\glfw3native.h" />
     <ClInclude Include="extern\imgui\imconfig.h" />
-    <ClInclude Include="extern\imgui\imstb_textedit.h" />
     <ClInclude Include="global.h" />
     <ClInclude Include="IniArchive.h" />
     <ClInclude Include="Material.h" />
@@ -91,7 +93,6 @@
     <ClInclude Include="RelativeMouseInput.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="ShaderCache.h" />
     <ClInclude Include="shaders\shader_io.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Timer.h" />
@@ -175,10 +176,29 @@
     <ClInclude Include="vulkanBase.h">
       <Filter>external\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="DeferredRelease.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorHeap.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imstb_textedit.h">
+      <Filter>external\ImGUI</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderCache.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="ASCIIFile.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GLFW\glfw3.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\GLFW\glfw3native.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Library Include="extern\GLFW\glfw3.lib" />
-    <Library Include="extern\slang\lib\gfx.lib" />
     <Library Include="extern\slang\lib\slang.lib">
       <Filter>external\Slang</Filter>
     </Library>
@@ -188,18 +208,17 @@
     <Library Include="extern\slang\lib\slang-rt.lib">
       <Filter>external\Slang</Filter>
     </Library>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="VulkanSlangStarter.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="icon.ico" />
+    <Library Include="extern\slang\lib\gfx.lib">
+      <Filter>Hidden</Filter>
+    </Library>
+    <Library Include="extern\GLFW\glfw3.lib">
+      <Filter>Hidden</Filter>
+    </Library>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="CONTRIBUTING.md" />
     <None Include="readme.md" />
-    <None Include="shaders\laser.slang" />
     <None Include="shaders\shader.comp.slang">
       <Filter>Shaders</Filter>
     </None>
@@ -210,12 +229,6 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="shaders\post.slang">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="shaders\ray.slang">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="shaders\interaction.slang">
       <Filter>Shaders</Filter>
     </None>
     <None Include="shaders\mathlib.slang">
@@ -244,5 +257,21 @@
     <Filter Include="external\hash-library">
       <UniqueIdentifier>{90e8dc46-b9e7-4847-a948-01234d179191}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{486012f4-56f4-436e-bf07-cb6b15f492a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hidden">
+      <UniqueIdentifier>{c3bad473-b514-4419-a465-599139343d3a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico">
+      <Filter>Hidden</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VulkanSlangStarter.rc">
+      <Filter>Hidden</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

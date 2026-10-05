@@ -27,42 +27,4 @@ Created UI descriptor pool: 130 sets (sampler=2, sampledImage=128)
 
 Compile 'shaders/shader.rast.slang' 'vertexMain' 'fragmentMain'
 
-Compiler Output:
-error[E30027]: member not found
-   --> shaders\shader.rast.slang:286:12
-    |
-286 | if (scene.enableIBL != 0)
-    |           ^^^^^^^^^ 'enableIBL' is not a member of 'SceneInfo'.
-----'
-error[E30027]: member not found
-   --> shaders\shader.rast.slang:293:57
-    |
-293 | TextureCube diffCube = TextureCube.Handle(uint2(scene.iblDiffuseHeapIndex, 0));
-    |                                                       ^^^^^^^^^^^^^^^^^^^ 'iblDiffuseHeapIndex' is not a member of 'SceneInfo'.
-----'
-error[E30027]: member not found
-   --> shaders\shader.rast.slang:325:16
-    |
-325 | ldr *= scene.exposureMul;
-    |              ^^^^^^^^^^^ 'exposureMul' is not a member of 'SceneInfo'.
-----'
-error[E39999]: import failed due to compilation error
-fatal error[E40003]: compilation ceased
-abort compilation: fatal error[E40003]: compilation ceased
-
-
-Compile 'shaders/post.slang' 'vertexMain' 'fragmentMain'
-
-Compiler Output:
-error[E30027]: member not found
-   --> shaders\post.slang:437:33
-    |
-437 | linearBackground.rgb *= scene.exposureMul;
-    |                               ^^^^^^^^^^^ 'exposureMul' is not a member of 'SceneInfo'.
-----'
-error[E39999]: import failed due to compilation error
-fatal error[E40003]: compilation ceased
-abort compilation: fatal error[E40003]: compilation ceased
-
-
 selectSwapPresentMode: eVSyncMode=1 mailboxSupported=1 immediateSupported=1 -> chosen=1

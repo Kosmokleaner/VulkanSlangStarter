@@ -9,42 +9,6 @@ extern Renderer g_renderer;
 
 CObjManager<CTexHandle, Texture> g_TextureManager;
 
-void GenerateNormalMapFromLuminance(const uint8_t* albedoRGBA, uint32 width, uint32 height, float strength, std::vector<uint32>& outNormalRGBA)
-{
-	outNormalRGBA.resize(size_t(width) * height);
-
-	// Rec.709 luma from the raw (still sRGB-gamma-encoded) bytes directly -- this only needs to
-	// track the albedo's own relative light/dark pattern as a height field, not a photometrically
-	// exact decode, so skipping the sRGB->linear conversion here is fine (and cheaper).
-	auto luminanceAt = [&](int32 x, int32 y) -> float
-	{
-		x = std::clamp(x, 0, (int32)width - 1);
-		y = std::clamp(y, 0, (int32)height - 1);
-		const uint8_t* p = albedoRGBA + (size_t(y) * width + x) * 4;
-		return (0.2126f * p[0] + 0.7152f * p[1] + 0.0722f * p[2]) / 255.0f;
-	};
-
-	for (uint32 y = 0; y < height; ++y)
-	{
-		for (uint32 x = 0; x < width; ++x)
-		{
-			// Central-difference gradient of the height field, standard "bump from heightmap"
-			// tilt-the-normal-by-the-slope formula (z=1 is the untilted, flat-surface case).
-			float dx = (luminanceAt((int32)x + 1, (int32)y) - luminanceAt((int32)x - 1, (int32)y)) * strength;
-			float dy = (luminanceAt((int32)x, (int32)y + 1) - luminanceAt((int32)x, (int32)y - 1)) * strength;
-
-			float3 n = float3(-dx, -dy, 1.0f);
-			float len = std::sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
-			n = n / std::max(len, 1e-8f);
-
-			auto toByte = [](float c) -> uint32 { return (uint32)std::clamp((c * 0.5f + 0.5f) * 255.0f, 0.0f, 255.0f); };
-			uint32 r = toByte(n.x), g = toByte(n.y), b = toByte(n.z);
-
-			outNormalRGBA[size_t(y) * width + x] = r | (g << 8) | (b << 16) | (0xFFu << 24);
-		}
-	}
-}
-
 void Texture::uploadPixels(VulkanContext& vulkanContext, uint32 width, uint32 height, const uint8_t* rgba, const std::string& debugName)
 {
 	// m_loadFromFile is already set by whichever of loadFromFile()/loadFromMemory() called us --

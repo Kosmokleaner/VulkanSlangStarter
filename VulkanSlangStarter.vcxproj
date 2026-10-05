@@ -188,11 +188,8 @@
     <None Include=".gitignore" />
     <None Include="CONTRIBUTING.md" />
     <None Include="readme.md" />
-    <None Include="shaders\interaction.slang" />
-    <None Include="shaders\laser.slang" />
     <None Include="shaders\mathlib.slang" />
     <None Include="shaders\post.slang" />
-    <None Include="shaders\ray.slang" />
     <None Include="shaders\s2h_3d.slang" />
     <None Include="shaders\shader.comp.slang" />
     <None Include="shaders\shader.rast.slang" />

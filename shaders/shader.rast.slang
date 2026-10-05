@@ -281,29 +281,6 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 			hdr += lightColor * EvalGGXBRDF(interpolatedNormal, V, L, materialColor, metallic, max(roughness, kMinPunctualLightRoughness));
 		}
 	}
-	// Image-based lighting: infinite-far environment (direction-only, no parallax against scene
-	// geometry) baked offline into two cubemaps -- see IBLEnvironment.h. Rasterizer only for now.
-	if (scene.enableIBL != 0)
-	{
-		SamplerState samp = SamplerState.Handle(uint2(0, 0));
-
-		// Diffuse: pre-integrated irradiance, sampled by the surface normal alone (no mip -- the
-		// map is already fully convolved over the hemisphere), scaled by albedo directly (the map's
-		// own baking already accounts for the Lambertian normalization, not applied again here).
-		TextureCube diffCube = TextureCube.Handle(uint2(scene.iblDiffuseHeapIndex, 0));
-		float3 iblDiffuse = diffCube.SampleLevel(samp, RotateCubemapLookupDir(interpolatedNormal), 0.0f).rgb;
-
-		hdr += materialColor * (1.0f - metallic) * iblDiffuse;
-
-		// Specular IBL reflection deliberately disabled here: it had no occlusion (no SSR/AO), so a
-		// Schlick Fresnel rim at grazing angles reflected the outdoor environment cubemap straight
-		// through indoor walls/corners -- confirmed live as unrealistically bright edges with no way
-		// to tell it apart from a real reflective surface. BSP levels (this rasterizer's primary
-		// content) are period-correct with no specular at all (Quake-era, diffuse lightmaps only),
-		// so losing this for now costs nothing there; ray tracing gets specular "for free" via
-		// genuinely traced (and therefore correctly occluded) bounces instead, see ray.slang.
-	}
-
 	hdr += materialBuffer.emissiveColor * materialBuffer.emissiveIntensity;
 
 
@@ -316,13 +293,6 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	// contrast/shape while exposure (already gated to EVM_Shaded below) only scales everything
 	// uniformly and can't fix that on its own.
 	float3 ldr = scene.enableTonemapper != 0 ? filmicToneMapping(hdr) : hdr;
-
-	// Exposure is a tonemapping/HDR-display control -- irrelevant for the EVM_* debug visualize
-	// modes below (normals, UVs, IDs, etc., all already 0..1 values), same reasoning/gating as
-	// post.slang's own scene.exposureMul use for the ray tracing path. Applied after tonemapping
-	// here too, matching that path's existing order.
-	if (scene.visualizeMode == VisualizeMode::EEnum::EVM_Shaded)
-		ldr *= scene.exposureMul;
 
 	if (scene.visualizeMode == VisualizeMode::EEnum::EVM_NormalWS)
 	{
