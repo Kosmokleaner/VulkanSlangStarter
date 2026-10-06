@@ -160,6 +160,9 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 
 	float3 hdr = float3(0,0,1); // blue
 
+	// works
+//	hdr = float3(input.position.xy / scene.resolution, 0);
+
 	// todo: tonemapper
 	float3 ldr = hdr;
 	

@@ -15,24 +15,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CameraComponent.cpp" />
-    <ClCompile Include="Platform.cpp" />
-    <ClCompile Include="Buffer.cpp" />
-    <ClCompile Include="EventManager.cpp" />
-    <ClCompile Include="IniArchive.cpp" />
-    <ClCompile Include="Material.cpp" />
-    <ClCompile Include="RenderComponent.cpp" />
-    <ClCompile Include="Texture.cpp" />
     <ClCompile Include="App.cpp" />
-    <ClCompile Include="ObjManager.cpp" />
-    <ClCompile Include="Parse.cpp" />
-    <ClCompile Include="Reflection.cpp" />
-    <ClCompile Include="RelativeMouseInput.cpp" />
-    <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="Timer.cpp" />
-    <ClCompile Include="WindowPersist.cpp" />
     <ClCompile Include="extern\imgui\imgui.cpp">
       <Filter>external\ImGUI</Filter>
     </ClCompile>
@@ -72,31 +55,61 @@
     <ClCompile Include="ASCIIFile.cpp">
       <Filter>Hidden</Filter>
     </ClCompile>
+    <ClCompile Include="Buffer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="IniArchive.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="RelativeMouseInput.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Timer.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowPersist.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="Parse.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="Platform.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="EventManager.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderComponent.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="CameraComponent.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="ObjManager.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Material.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Reflection.cpp">
+      <Filter>Hidden</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AABB3.h" />
-    <ClInclude Include="CameraComponent.h" />
-    <ClInclude Include="Platform.h" />
-    <ClInclude Include="Buffer.h" />
-    <ClInclude Include="EventManager.h" />
-    <ClInclude Include="extern\imgui\imconfig.h" />
     <ClInclude Include="global.h" />
-    <ClInclude Include="IniArchive.h" />
-    <ClInclude Include="Material.h" />
-    <ClInclude Include="RenderComponent.h" />
-    <ClInclude Include="Plane3.h" />
-    <ClInclude Include="Texture.h" />
     <ClInclude Include="App.h" />
-    <ClInclude Include="ObjManager.h" />
-    <ClInclude Include="Parse.h" />
-    <ClInclude Include="Reflection.h" />
-    <ClInclude Include="RelativeMouseInput.h" />
-    <ClInclude Include="Renderer.h" />
-    <ClInclude Include="Scene.h" />
-    <ClInclude Include="Shader.h" />
-    <ClInclude Include="Timer.h" />
-    <ClInclude Include="Transform.h" />
-    <ClInclude Include="WindowPersist.h" />
     <ClInclude Include="extern\imgui\imgui.h">
       <Filter>external\ImGUI</Filter>
     </ClInclude>
@@ -198,6 +211,69 @@
     </ClInclude>
     <ClInclude Include="shaders\shader_io.h">
       <Filter>Shaders</Filter>
+    </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="IniArchive.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="RelativeMouseInput.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Timer.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowPersist.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="Transform.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="Plane3.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="Parse.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="Platform.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="EventManager.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderComponent.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="CameraComponent.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="ObjManager.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Material.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Reflection.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="extern\imgui\imconfig.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="AABB3.h">
+      <Filter>Hidden</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

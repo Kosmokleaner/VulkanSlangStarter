@@ -284,6 +284,9 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 		ray.Direction = normalize(worldPos - S2S_CAMERA_POS());
 	}
 
+	// UV gradient
+	linearBackground = float4(input.position.xy / scene.resolution, 0, 1);
+
 	// Note: ui.dstColor is premultiplied
 	float4 linearColor = linearBackground * (1.0f - ui.dstColor.a) + ui.dstColor;
 
@@ -291,6 +294,7 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 
 	if (output.color.a < 1.0f)
 		clip(-1);
+
 
 	output.color.a = 1.0f;
 	

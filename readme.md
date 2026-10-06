@@ -1,5 +1,5 @@
 
-# VulkanSlangStarter V 0.07
+# VulkanSlangStarter V 0.9
 
 A starting point for a Vulkan renderer by Martin Mittring
 

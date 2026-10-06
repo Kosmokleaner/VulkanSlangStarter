@@ -2,14 +2,6 @@
 
 #pragma once
 
-// 1..1000 or more, larger is better for less noise, too large could cause float precision issues after some long time
-#define MAX_TEMPORAL_ACCUM 1000
-//
-#define APPEND_ARENA_LOG_LOAD 0
-//
-#define APPEND_ARENA_LOG_SAVE 0
-
-
 //==========================================
 
 typedef signed char int8;
@@ -117,5 +109,3 @@ inline float asfloat(uint32 h)
 	return *(float*)&h;
 }
 
-#define LOGI_AA_LOAD(format, ...) if(APPEND_ARENA_LOG_LOAD)LOGI("load " format, __VA_ARGS__);
-#define LOGI_AA_SAVE(format, ...) if(APPEND_ARENA_LOG_SAVE)LOGI("save " format, __VA_ARGS__);
