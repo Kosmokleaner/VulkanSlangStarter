@@ -94,9 +94,6 @@
     <ClCompile Include="ObjManager.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Material.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="Reflection.cpp">
       <Filter>Hidden</Filter>
     </ClCompile>
@@ -249,9 +246,6 @@
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="ObjManager.h">
-      <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Material.h">
       <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Reflection.h">

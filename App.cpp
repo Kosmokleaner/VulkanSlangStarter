@@ -35,7 +35,6 @@
 #include "RelativeMouseInput.h"
 #include "EventManager.h"
 #include "Scene.h"
-#include "Material.h"
 #include "Platform.h"
 #include "Texture.h"
 #include "Renderer.h"
@@ -233,29 +232,6 @@ void setupScene1()
 	
 	VkCommandBuffer cmd = utils::beginSingleTimeCommands(g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool);
 	VulkanContext vulkanContext(g_renderer.m_context.getDevice(), g_renderer.m_context.getPhysicalDevice(), g_renderer.m_allocator, cmd, g_renderer.m_context.getGraphicsQueue().queue, g_renderer.m_transientCmdPool);
-
-	// Created up front (materials don't need a command buffer) since g_plane.createPlane() below
-	// needs a material handle -- every mesh always carries one now, see Mesh::m_primitiveMaterials.
-	CMatHandle hndM0;
-	{
-		Material m0;
-		m0.m_name = "ground";
-		m0.m_albedoColor = float3(0.95f, 0.8f, 0.5f);
-		m0.m_roughness = 0.35f;
-		m0.m_metallic = 1.0f;
-		m0.m_albedoTextureFade = 0.5f; // less texture
-		hndM0 = g_MaterialManager.push_back(m0);
-	}
-	CMatHandle hndM1;
-	{
-		Material m1;
-		m1.m_name = "couch";
-		m1.m_albedoColor = float3(0.3f, 0.9f, 0.9f);
-		m1.m_roughness = 0.8f;
-		m1.m_metallic = 0.0f;
-		m1.m_albedoTextureFade = 0.9f; // less texture
-		hndM1 = g_MaterialManager.push_back(m1);
-	}
 
 	// Load the two hand-authored test images first, so they claim descriptor-heap slots
 	// 0/1 -- matching the "Image 1"/"Image 2" debug radio buttons (m_imageID -> scene.texId,
@@ -1172,7 +1148,6 @@ void App::init()
 
 	Log("\n");
 
-	g_MaterialManager.InitOnce(4096);
 	g_scene.m_sceneObjects.InitOnce(4096);
 	g_CameraManager.InitOnce(4096);
 
@@ -1356,32 +1331,6 @@ bool SliderTexHandle(const char* label, CTexHandle& hnd)
 		hnd = g_TextureManager.GetHandleByIterator(it);
 
 	return ret;
-}
-
-bool ImGuiMaterial(CMatHandle hnd)
-{
-	bool resetTemporal = false;
-
-	if(auto* p = g_MaterialManager.GetElementPtr(hnd))
-	{
-		auto &el = *p;
-		ImGui::Text("Material #%d.%d", (uint32)hnd.Index, (uint32)hnd.Seed);
-		resetTemporal |= ImGui::Combo("Type", (int*)&el.m_type, Material::typeUI, 2);
-		resetTemporal |= ImGui::InputText("Name", &el.m_name, ImGuiInputTextFlags_ReadOnly);
-//		resetTemporal |= ImGui::InputText("Name", (char*)el.m_name.c_str(), el.m_name.size(), ImGuiInputTextFlags_ReadOnly);
-		resetTemporal |= ImGui::ColorEdit3("Albedo Color", (float*)&el.m_albedoColor);
-		resetTemporal |= ImGui::ColorEdit3("Emissive Color", (float*)&el.m_emissiveColor);
-		resetTemporal |= ImGui::SliderFloat("EmissiveIntensity", &el.m_emissiveIntensity, 0.0f, 16.0f);
-		resetTemporal |= ImGui::SliderFloat("Roughness", &el.m_roughness, 0.0f, 1.0f);
-		resetTemporal |= ImGui::SliderFloat("Metallic", &el.m_metallic, 0.0f, 1.0f);
-		resetTemporal |= ImGui::SliderFloat("AlbedoTextureFade", &el.m_albedoTextureFade, 0.0f, 1.0f);
-		resetTemporal |= ImGui::SliderFloat("SpecularOcclusionFromAlbedo (0=off)", &el.m_specOcclusionFromAlbedo, 0.0f, 1.0f);
-		resetTemporal |= SliderTexHandle("Albedo texture", el.m_hndTexture);
-		resetTemporal |= SliderTexHandle("MetallicRoughness texture", el.m_hndMetallicRoughnessTexture);
-		resetTemporal |= SliderTexHandle("Lightmap texture", el.m_hndLightmap);
-	}
-
-	return resetTemporal;
 }
 
 void App::drawFrame(VkCommandBuffer cmd)
