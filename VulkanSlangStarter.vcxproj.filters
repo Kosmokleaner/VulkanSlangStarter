@@ -266,9 +266,6 @@
     <ClInclude Include="extern\imgui\imconfig.h">
       <Filter>Hidden</Filter>
     </ClInclude>
-    <ClInclude Include="AABB3.h">
-      <Filter>Hidden</Filter>
-    </ClInclude>
     <ClInclude Include="Scene.h">
       <Filter>Renderer</Filter>
     </ClInclude>

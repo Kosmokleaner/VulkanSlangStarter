@@ -195,7 +195,6 @@
     <None Include="shaders\shader.rast.slang" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AABB3.h" />
     <ClInclude Include="CameraComponent.h" />
     <ClInclude Include="extern\imgui\imgui_stdlib.h" />
     <ClInclude Include="Platform.h" />
