@@ -52,17 +52,6 @@ struct SceneInfo
 	ROW_MAJOR float4x4 worldFromView; // aka invView, ViewToWorld
 	ROW_MAJOR float4x4 viewFromClip; // aka invProjection, clipToView
 	ROW_MAJOR float4x4 worldFromClip;
-	// Previous frame's camera matrices -- taa_resolve.slang's own reprojection when rayTracing==0
-	// (see taaMotionVectorHeapIndex's comment: ray tracing's own g_gbufferMotionVector is used
-	// instead when rayTracing!=0). Kept right after the current-frame matrix block above (not at
-	// this struct's tail with the other new TAA fields) so a float4x4's natural alignment can't
-	// silently disagree between C++'s pack(1) layout and Slang's -- see this file's own note on
-	// SceneInfo alignment; every matrix-sized field in this struct lives in this one contiguous
-	// block for that reason. Same cache/update pattern as RtxdiConstants::prevViewFromWorld/
-	// prevClipFromView (rtxdi_io.h) -- duplicated here rather than reused because this is read from
-	// a plain GraphicsPushData-based shader with no RtxdiConstants pointer of its own.
-	ROW_MAJOR float4x4 prevViewFromWorld;
-	ROW_MAJOR float4x4 prevClipFromView;
 
 	float3 wsCameraPos;
 	// 0:hide/1:draw HUD
@@ -71,14 +60,6 @@ struct SceneInfo
 	// in sRGB
 	float3 clearColor;
 	float zNear;
-
-	// Basic homogeneous participating media (ray.slang: EvalFogTransmittance/EvalInscattering). A
-	// per-channel extinction/scattering coefficient is fogDensity * fogColor (single-scattering
-	// albedo of 1, i.e. no separate absorption); 0 density disables fog entirely. fogColor also
-	// tints extinction (e.g. a blue fogColor extinguishes non-blue wavelengths faster, so blue
-	// survives at range).
-	float3 fogColor;
-	float fogDensity;
 
 	float zFar;
 	float fieldOfViewDeg;
@@ -98,13 +79,6 @@ struct GraphicsPushData
 alignas(16)
 #endif
 	ROW_MAJOR float4x4 modelMatrix;
-};
-
-struct PushConstantCompute
-{
-  uint64_t bufferAddress;  // Buffer device address of the vertex buffer
-  float rotationAngle;
-  int numVertex;
 };
 
 // see C++ "struct Vertex : public shaderio::Vertex"
