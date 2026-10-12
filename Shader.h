@@ -4,7 +4,7 @@
 
 #include "vulkanBase.h"
 #include "EventManager.h"
-#include "Renderer.h"  // Renderer::kMaxFramesInFlight -- see m_rtDescSet's comment
+#include "Renderer.h"  // Renderer::kMaxFramesInFlight -- see m_descSet's comment
 
 
 class Shader : public IAppInit
@@ -27,7 +27,7 @@ public: // todo
 	// (e.g. [[vk::binding(0, 0)]] Sampler2D in Slang), see cmdBindTextures().
 	uint32 m_textureCount = 0;
 
-	// 0 if shader error
+	// ray tracing pipeline -- ray shaders aren't created yet (see create()), so always 0 for now
 	VkPipeline m_pipeline = {};
 	// non-bindless only (m_textureCount > 0)
 	VkDescriptorSetLayout m_descSetLayout = {};
@@ -39,10 +39,9 @@ public: // todo
 	VkDescriptorSet m_descSet[Renderer::kMaxFramesInFlight] = {};
 	// m_descSetLayout + the GraphicsPushData push constant range (non-bindless only)
 	VkPipelineLayout m_pipelineLayout = {};
-	// Shader binding table for this shader's own ray tracing pipeline -- SBT contents are
-	// per-pipeline (built from this shader's own group handles), so each ray tracing Shader
-	// instance owns its own, unlike the scene-level buffers (mesh/material/TLAS) that are shared
-	// by every ray tracing shader. Built lazily on the first dispatchRayTracing() call, once.
+	// Shader binding table for this shader's own ray tracing pipeline (m_pipeline) -- SBT contents
+	// are per-pipeline (built from its group handles), so each ray tracing Shader owns its own.
+	// Not built yet (see m_pipeline).
 	Buffer m_sbt;
 
 public:
@@ -77,5 +76,4 @@ private:
 	void createGfx(EventContext& context);
 	// non-bindless only: m_descSetLayout, m_descPool, m_descSet, m_pipelineLayout
 	void createDescriptorSets(EventContext& context);
-	void createRay(EventContext& context);
 };

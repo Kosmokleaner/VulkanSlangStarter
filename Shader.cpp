@@ -6,7 +6,7 @@
 #include <slang.h>
 #include <slang-com-ptr.h>
 #include <vulkan/vulkan_core.h>
-#include <windows.h>	// GetCurrentDirectory()
+#include <windows.h>	// OutputDebugStringA()
 #include "Shader.h"
 #include <filesystem>
 
@@ -77,6 +77,7 @@ void Shader::compile()
 	bool needToCompile = false;
 	for (int stageId = 0; stageId < stageCount; ++stageId)
 	{
+		// note: compile options (e.g. the capability below) are not part of the key
 		Hash[stageId] = ComputeShaderHash(filePath.c_str()/*, D3DInclude*/);
 		Hash[stageId].Add(functionName[stageId].c_str(), (uint32)functionName[stageId].size());
 //		Hash.Add(Target, strlen(Target));
@@ -116,12 +117,9 @@ void Shader::compile()
 	targetDesc.profile = g_globalSession->findProfile("spirv_1_5");
 	sessionDesc.targets = &targetDesc;
 	sessionDesc.targetCount = 1;
-	// extern/Rtxdi/Include lets shader code #include "Rtxdi/..." headers verbatim, matching the
-	// exact include paths RTXDI's own vendored .hlsli files already use internally -- avoids having
-	// to rewrite any vendored file's #include lines.
-	const char* searchPaths[] = { "shaders", "extern/Rtxdi/Include" };
+	const char* searchPaths[] = { "shaders" };
 	sessionDesc.searchPaths = searchPaths;
-	sessionDesc.searchPathCount = 2;
+	sessionDesc.searchPathCount = sizeof(searchPaths) / sizeof(*searchPaths);
 
 	slang::CompilerOptionEntry entry[2];
 	entry[0].name = slang::CompilerOptionName::Capability;
@@ -309,13 +307,11 @@ void Shader::create(EventContext& context)
 
 	// functionName[2], not code[2]: functionName[] is set once at construction and never touched
 	// again, so it reliably tells a 3-stage ray shader from a 2-stage raster one even when compile()
-	// failed and left every code[] empty (see its own "if(!module) return" comment) -- code[2].empty()
-	// would then misclassify a broken RAY shader as a raster one, dispatching to the wrong (harmless
-	// here only because createGfx() has its own, unrelated empty-code guard) creation function.
+	// failed and left every code[] empty (see its own "if(!module) return").
 	if (functionName[2].empty())
 		createGfx(context);
 	else
-		ASSERT(0);
+		ASSERT(0, "ray tracing shaders are not supported yet");
 }
 
 void Shader::createGfx(EventContext& context)
@@ -336,7 +332,7 @@ void Shader::createGfx(EventContext& context)
 	if (!bindless)
 		createDescriptorSets(context);
 
-	// Three unlinked shader objects. nextStage is a hint to the driver about
+	// Two unlinked shader objects (vertex + fragment). nextStage is a hint to the driver about
 	// which stage will follow at bind time -- it doesn't constrain what we
 	// can actually bind.
 	const VkShaderCreateFlagsEXT commonFlags = bindless ? VK_SHADER_CREATE_DESCRIPTOR_HEAP_BIT_EXT : 0;
@@ -361,7 +357,7 @@ void Shader::createGfx(EventContext& context)
 		.pSpecializationInfo = nullptr,  // Vertex shader has no spec constants
 	};
 
-	VkShaderCreateInfoEXT fragCreateInfoTextured{
+	VkShaderCreateInfoEXT fragCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
 		.flags = commonFlags,
 		.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
@@ -377,11 +373,11 @@ void Shader::createGfx(EventContext& context)
 //		.pSpecializationInfo = &specInfoTextured,
 	};
 
-	// Create all three in separate calls. Each creates an unlinked shader object
+	// Create both in separate calls. Each creates an unlinked shader object
 	// that can be bound independently.
 	VK_CHECK(vkCreateShadersEXT(context.device, 1, &vertCreateInfo, nullptr, &m_shader[0]));
 	DBG_VK_NAME2(m_shader[0], "VS");
-	VK_CHECK(vkCreateShadersEXT(context.device, 1, &fragCreateInfoTextured, nullptr, &m_shader[1]));
+	VK_CHECK(vkCreateShadersEXT(context.device, 1, &fragCreateInfo, nullptr, &m_shader[1]));
 	DBG_VK_NAME2(m_shader[1], "FS");
 }
 
@@ -544,19 +540,15 @@ void Shader::deinit(EventContext& context)
 	}
 	for (VkDescriptorSet& descSet : m_descSet)
 		descSet = {};
+//	m_descSet = {};
 
 	vkDestroyShaderEXT(context.device, m_shader[0], nullptr); m_shader[0] = {};
 	vkDestroyShaderEXT(context.device, m_shader[1], nullptr); m_shader[1] = {};
 	vkDestroyShaderEXT(context.device, m_shader[2], nullptr); m_shader[2] = {};
 	vkDestroyPipeline(context.device, m_pipeline, nullptr); m_pipeline = {};
 
-	// m_sbt's shader group handles are baked from m_pipeline's own groups (see
-	// dispatchRayTracing()'s "built lazily ... once" comment, written back when this class only
-	// ever built a pipeline a single time) -- now that reload() can rebuild m_pipeline as a
-	// different VkPipeline object, leaving m_sbt non-null here makes dispatchRayTracing()'s "already
-	// built?" check skip rebuilding it, binding a stale SBT (handles from the OLD, now-destroyed
-	// pipeline) against the NEW one. Deinit it here too so the next dispatchRayTracing() rebuilds it
-	// from the new pipeline's real handles.
+	// m_sbt's shader group handles are baked from m_pipeline's own groups -- reset it together with
+	// m_pipeline so a reload() never keeps an SBT built from the old, destroyed pipeline.
 	m_sbt.deinit(context);
 
 	code[0].clear();
@@ -575,10 +567,10 @@ void Log(const char* format, ...)
 
 	va_end(args);
 	OutputDebugStringA(buffer);
-	// Was OutputDebugStringA-only -- invisible without a debugger attached, which meant Slang
-	// compiler diagnostics (warnings/errors from shader recompiles, e.g. after the RTXDI
-	// integration) went unseen. "%s" (not buffer directly) since buffer already had vsnprintf
-	// applied and may itself contain literal '%' from the compiler's own message text.
+	// Also logged, not just OutputDebugStringA (invisible without a debugger attached), so Slang
+	// compiler diagnostics (warnings/errors from shader recompiles) are never missed. "%s" (not
+	// buffer directly) since buffer already had vsnprintf applied and may itself contain literal
+	// '%' from the compiler's own message text.
 	LOGW("%s", buffer);
 }
 

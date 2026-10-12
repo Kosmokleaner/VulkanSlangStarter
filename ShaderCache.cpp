@@ -205,7 +205,7 @@ static void appendPath(std::string &inoutPath, const std::string& pathWithFile)
 
 
 
-// can be optimzized for less memory allocations
+// can be optimized for less memory allocations
 // @param parentPath e.g. "shaders/"
 void ComputeShaderHashFromTxt(const char* FileTxt, std::string parentPath, /*ID3DInclude& Include, */CShaderHash& Hash)
 {

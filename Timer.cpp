@@ -28,7 +28,7 @@ CScopedCPUTimer::~CScopedCPUTimer()
 
 	float TimeDelta = (float)(EndTime - StartTime);
 
-	/* hidden for now, not needed for DitherExperiment
+	/* hidden for now
 		char str[1024];
 
 		sprintf_s(str, sizeof(str), "CPU  %*.1f ms %s", 6, TimeDelta * 1000, Text);		// 6 spaces (see trick here: http://www.cplusplus.com/reference/cstdio/printf/)

@@ -29,12 +29,10 @@ STATIC_CONST int LVLightmapUV = 4;
 
 // Buffer-reference/raw-pointer struct access (e.g. (SceneInfo*)pushData.sceneInfoAddress) has no
 // automatic matrix-layout reflection the way a traditional cbuffer/ConstantBuffer<T> binding does,
-// so mul() and explicit row indexing (mat[i], as MatrixVectorMultiply in mathlib.slang uses) can
-// silently disagree on majorness for the exact same bytes -- this was the root cause of a
-// hard-to-diagnose device-lost/garbage-output bug in shader.rast.slang's worldFromClip. Declaring
-// these fields row_major forces mul() to agree with the row-indexed convention this codebase's C++
-// side already targets (matrices are uploaded via glm::transpose() specifically for that
-// convention -- see e.g. sceneInfo.viewFromWorld in App.cpp). C++-only: no-op.
+// so mul() and explicit row indexing (mat[i]) can silently disagree on majorness for the exact same
+// bytes -- a hard-to-diagnose device-lost/garbage-output bug. Declaring matrix fields row_major
+// forces mul() to agree with the row-indexed convention the C++ side targets (upload matrices via
+// glm::transpose()). C++-only: no-op.
 #ifdef _CPP
 #define ROW_MAJOR
 #else
@@ -47,20 +45,19 @@ struct SceneInfo
 {
 	float2 resolution;         // Viewport resolution, todo: uint and 1/xy
 	uint texId0;
-	uint texId1;
-
 	// 0:hide/1:draw HUD
 	uint infoHUD;
+	uint dummy0;
 
 	// in sRGB
 	float3 clearColor;
 	float fieldOfViewDeg;
 };
 
-// Push data for the graphics pipeline (vkCmdPushDataEXT).
-// With descriptor heap, the pipeline layout is VK_NULL_HANDLE, so traditional push constants
-// and push descriptors cannot be used. Push data carries only the minimum needed per draw call:
-// the address of the scene buffer (updated once per frame) and the per-draw color.
+// Per-draw data for graphics shaders, sent by Shader::cmdPushData(): vkCmdPushDataEXT for bindless
+// (descriptor heap) shaders, whose pipeline layout is VK_NULL_HANDLE, or vkCmdPushConstants2 for
+// non-bindless ones. Carries only the minimum needed per draw call: the address of the scene
+// buffer (updated once per frame) and the model matrix.
 struct GraphicsPushData
 {
 	uint64_t sceneInfoAddress;  // SceneInfo*

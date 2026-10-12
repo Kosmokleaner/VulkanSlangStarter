@@ -20,9 +20,8 @@ struct PixelOutput
 // Resource Bindings
 //------------------------------------------------------------------------------
 
-// Push data (vkCmdPushDataEXT): carries only the scene buffer address and per-draw color.
-// With descriptor heap (VK_EXT_descriptor_heap), the pipeline layout is VK_NULL_HANDLE,
-// so traditional push constants and push descriptors (UBOs) cannot be used.
+// Per-draw data (scene buffer address, model matrix), see GraphicsPushData. g_post is non-bindless,
+// so this arrives as classic push constants (vkCmdPushConstants2, see Shader::cmdPushData).
 [[vk::push_constant]]
 ConstantBuffer<GraphicsPushData> pushData;
 

@@ -80,7 +80,8 @@ class CTexHandle : public CObjHandle {};
 // object type
 class CMakeHandle : public CObjHandle {};
 
-// does not handle constructor and destructor yet, fixed size, no reallocations. T can be a pointer or an object
+// fixed size, no reallocations. T can be a pointer or an object; T's constructor/destructor run on
+// add/remove (see emplace_back(), RemoveByIndex())
 // @param THandle e.g. CObjHandle, CTexHandle
 // @param TSeedEnd only for testing
 template <class THandle, class T, int TSeedEnd = -1>
@@ -97,7 +98,7 @@ public:
 
 	// should only be called once
 	// O(n)
-	// @param Size can be larger than 65k but reusing a single index is limit by the data type or "Seed" type (65k for uint16)
+	// @param Size number of slots; how often a single slot can be reused is limited by the "Seed" type (uint32) or TSeedEnd
 	void InitOnce(uint32 Size)
 	{
 		ASSERT(Size > 0);
@@ -143,14 +144,11 @@ public:
 
 	// Constructs T in its final slot directly from `args`, instead of push_back()'s "build a
 	// temporary, then copy it in" -- required for a T that owns a registration-based resource (e.g.
-	// MeshComponent's Buffer members, each auto-registering itself with g_EventManager via IAppInit,
-	// see EventManager.h) where the compiler-generated copy constructor a temporary would go through
-	// silently does NOT re-register the copy. That copy still looks fully valid right up until
-	// shutdown's callAppDeInit() sweep -- driven by that same registration list -- skips it, leaving
-	// its GPU buffer(s) never deinit()'d (confirmed live as a leak/validation-layer report only
-	// after switching a manager from storing T* to storing T by value, which is exactly what turned
-	// this from "an extra harmless copy of a pointer" into "an extra unregistered copy of the real
-	// resource-owning object").
+	// a Buffer member, auto-registering itself with g_EventManager via IAppInit, see EventManager.h)
+	// where the compiler-generated copy constructor a temporary would go through silently does NOT
+	// re-register the copy. That copy still looks fully valid right up until shutdown's
+	// callAppDeInit() sweep -- driven by that same registration list -- skips it, leaving its GPU
+	// buffer(s) never deinit()'d.
 	template <class... Args>
 	THandle emplace_back(Args&&... args)
 	{
@@ -279,7 +277,7 @@ public:
 	}
 	
 	// O(1)
-	// useful to iterate all elements, see GetElementByIndex()
+	// useful to iterate all elements, see GetElementByIterator()
 	uint32 GetElementCount() const { return UsedCount; }
 	// todo: remove this or the other
 	uint32 size() const { return UsedCount; }
@@ -289,10 +287,9 @@ public:
 	// given. THandle::Index (the position in Elements[], what GetElementPtr()/GetHandleByIndex()
 	// index with) is always < this, even though it's only < GetElementCount() when nothing has
 	// ever been removed-and-reused (see GetHandleByIterator()'s own comment on why those two
-	// diverge) -- a CPU-side array meant to be indexed by THandle::Index (matching a GPU id built
-	// the same way, e.g. Renderer::createTopLevelAS's instanceCustomIndex) must be sized by this,
-	// not GetElementCount(), or an index recycled from Clear()-ing a larger previous population
-	// writes past the end.
+	// diverge) -- a CPU-side array meant to be indexed by THandle::Index (e.g. matching a GPU id
+	// built the same way) must be sized by this, not GetElementCount(), or an index recycled from
+	// Clear()-ing a larger previous population writes past the end.
 	uint32 GetCapacity() const { return (uint32)Elements.size(); }
 
 	// O(1)
@@ -310,7 +307,8 @@ public:
 	}
 
 	// find seed to index and return handle
-	// @re
+	// @param index position in Elements[] (THandle::Index)
+	// @return invalid handle if index is out of range
 	THandle GetHandleByIndex(uint32 index) const
 	{
 		THandle ret;
@@ -346,9 +344,6 @@ public:
 		ret.Seed = el.Seed;
 		return ret;
 	}
-
-	// only works in debug
-	static void Test();
 
 	// for debugging
 	uint32 GetDeadCount() const
@@ -396,10 +391,10 @@ private:
 
 	std::vector<TAndGuid> Elements;
 
-	// ranges: 
-	//   0 .. UsedElements-1							: used
-	//   UsedElements .. UsedElements+FreeCount-1		: free
-	//   UsedElements+FreeCount-1 .. Elements.size()-1	: dead
+	// ranges:
+	//   0 .. UsedCount-1								: used
+	//   UsedCount .. UsedCount+FreeCount-1			: free
+	//   UsedCount+FreeCount .. Elements.size()-1		: dead
 	// elements: index into Elements[]
 	std::vector<uint32> UsedAndFree;
 
@@ -558,17 +553,17 @@ public:
 	}
 
 	// example usage:
-	//  uint32 Index = 0;
-	//  while (CObjHandle& Hnd = Bullets.Iterate(Index)) {
-	//  SElementData* El = Scene.GetElementPtr(Hnd);
-	//  if (!El)	{
-	//    Bullets.RemoveByIndex(--Index);
-	//    continue;
+	//  uint32 PackedIndex = 0;
+	//  for (;;) {
+	//    TElement& Hnd = Bullets.Iterate(PackedIndex);
+	//    if (!Hnd.IsValid()) break;
+	//    SElementData* El = Scene.GetElementPtr(Hnd);
+	//    ...
 	//  }
-	// 
+	//
 	// usually O(1)
-	// @param Index start with 0
-	// @return 0 is end
+	// @param PackedIndex start with 0
+	// @return invalid handle at the end
 	TElement& Iterate(uint32& PackedIndex)
 	{
 		uint32 Size = (uint32)Packed.size();
@@ -646,12 +641,12 @@ public:
 	}
 
 private:
-	// [CObjHandle.Index]=Index in Packed[], -11 if not there
+	// [CObjHandle.Index]=Index in Packed[], -1 if not there
 	std::vector<uint32> HandleToPacked;
 	// packed CObjHandle with optional extra data
 	std::vector<TElement> Packed;
 
-	// only needed for iternal 
+	// only needed internally
 	void SetIndexToPackedElements(const CObjHandle& Hnd, int PackedIndex)
 	{
 		ASSERT(Hnd.IsValid());

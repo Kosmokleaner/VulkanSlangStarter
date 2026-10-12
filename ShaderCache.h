@@ -37,7 +37,7 @@ class CShaderCache
 {
 public:
 
-	// ShaderHash([HLSLCode]) = [Bytecode]
+	// ShaderHash(Slang source incl. #includes, entry point name) = SPIR-V
 	std::map<CShaderHash, std::vector<uint32> > KeyValuePairs;
 	
 	bool Load();

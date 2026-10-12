@@ -75,18 +75,13 @@ void DescriptorHeap::init(VkPhysicalDevice physicalDevice, VkCommandBuffer cmd)
 	VkPhysicalDeviceProperties2 props2{ .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2, .pNext = &heapProps };
 	vkGetPhysicalDeviceProperties2(physicalDevice, &props2);
 
-	// All heap buffers need these usage flags: device address for binding, transfer dst for upload,
-	// and the descriptor heap bit to mark them as heap storage
-	VkBufferUsageFlags2 heapUsage = VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_2_TRANSFER_DST_BIT
-		| VK_BUFFER_USAGE_2_DESCRIPTOR_HEAP_BIT_EXT;
-
 	// Compute how many descriptors the hardware can hold, accounting for the mandatory reserved range
 //	uint32 maxSamplerCapacity = static_cast<uint32>(
 //		(heapProps.maxSamplerHeapSize - heapProps.minSamplerHeapReservedRange) / heapProps.samplerDescriptorSize);
 	uint32 maxImageCapacity = static_cast<uint32>(
 		(heapProps.maxResourceHeapSize - heapProps.minResourceHeapReservedRange) / heapProps.imageDescriptorSize);
 
-	// ---- Sampler Heap ----
+	// ---- Sampler Heap ---- (not here: built by App::createDescriptorHeap(), see this class's header)
 	// We only need one sampler in this sample (linear filtering), but the heap can hold more
 //	uint32 maxSamplers = std::min(1U, maxSamplerCapacity);
 //	VkDeviceSize samplerHeapSize = heapProps.samplerDescriptorSize * maxSamplers + heapProps.minSamplerHeapReservedRange;

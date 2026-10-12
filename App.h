@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vulkanBase.h"
-#include "Buffer.h"  // for the shaderio namespace (VisualizeMode, used by m_visualizeMode)
+#include "Buffer.h"  // for the shaderio namespace (SceneInfo, GraphicsPushData)
 
 //--- App ------------------------------------------------------------------------------------------------------------
 // Main class for the sample. The application is the main class that is used to create the window,
@@ -11,10 +11,7 @@ class App
 {
 public:
 	App() = default;
-	// @param hidden: skips ever showing the GLFW window (see main()'s own tests::WantsSelfTestMode
-	// check) -- a real Vulkan device/swapchain/render loop still exists and runs exactly the same,
-	// there's just nothing displayed on screen for it. Used by --selftest so a scripted run doesn't
-	// pop up and steal focus; left false for the normal interactive app.
+	// @param size initial window size (client area)
 	App(VkExtent2D size = { 800, 600 });
 	~App();
 
@@ -32,9 +29,8 @@ private:
 	// all rendering commands for that frame.
 	void createFrameSubmission(uint32 numFrames);
 
-	// Main frame rendering function: records the ImGui UI, the ray tracing dispatch (if enabled)
-	// and the offscreen graphics pass (via recordGraphicsCommands), then renders the RenderTarget
-	// into the swapchain image through ImGui.
+	// Main frame rendering function: records the ImGui UI and the offscreen graphics pass (via
+	// recordGraphicsCommands), then renders the RenderTarget into the swapchain image through ImGui.
 	void drawFrame(VkCommandBuffer cmd);
 
 	// End the frame by submitting the command buffer to the GPU and presenting the image. Adds
@@ -59,8 +55,8 @@ private:
 	// avoiding redundant push data transfers.
 	void updateSceneBuffer(VkCommandBuffer cmd) const;
 
-	// Recording the commands to render the scene (rasterizer pass + post pass). See
-	// dispatchRayTracing() for the ray tracing dispatch, called from drawFrame() before this.
+	// Recording the commands to render the scene into the RenderTarget: the post shader's
+	// fullscreen triangle (gradient + g_hndTex0 on top).
 	void recordGraphicsCommands(VkCommandBuffer cmd);
 
 	// Initialize Dear ImGui: creates the ImGui context and its GLFW/Vulkan backends, and sets up
@@ -69,12 +65,13 @@ private:
 
 	// Create descriptor heap buffers for bindless resource access (VK_EXT_descriptor_heap).
 	// Instead of traditional descriptor sets and pools, the descriptor heap stores sampler and
-	// image descriptors in GPU buffers. Shaders access them by index using layout(descriptor_heap).
+	// image descriptors in GPU buffers. Bindless shaders access them by index. Also acquires
+	// m_linearSampler for non-bindless shaders.
 	void createDescriptorHeap(VkCommandBuffer cmd);
 
 	// Create a descriptor pool for ImGui. ImGui still uses traditional descriptor sets for its
 	// font textures and RenderTarget display textures. The application's own textures/samplers
-	// use the descriptor heap instead (see createDescriptorHeap).
+	// use the descriptor heap (bindless) or each Shader's own descriptor pool (non-bindless).
 	void createUIDescriptorPool();
 
 	// Prepare frame resources - the first step in the rendering process. It looks if the
@@ -97,18 +94,12 @@ private:
 	// Scene info GPU buffer, updated once per frame, accessed via BDA
 	utils::Buffer m_sceneInfoBuffer;
 	// Loaded textures are Texture objects (Texture.h) tracked in g_TextureManager, not members
-	// here -- see the two Texture::loadFromFile calls in init() and the g_TextureManager cleanup
-	// loop in destroy(). The two hand-authored test images always load first, so they claim
-	// descriptor-heap slots 0/1 (== shaderio::SceneInfo::texId, the "Image 1"/"Image 2" debug
-	// toggle below).
+	// here -- see setupScene1() and the g_TextureManager cleanup loop in destroy().
 	// The sampler pool, used to create a sampler for the texture
 	utils::SamplerPool m_samplerPool;
 
 	// linear filtering, repeat addressing; for non-bindless textures (see createDescriptorHeap)
 	VkSampler m_linearSampler{};
-
-	// g_outputBuffer's allocated capacity in pixels; see onViewportSizeChange's grow-only comment.
-	VkDeviceSize m_outputBufferCapacityPixels{};
 
 	// Offscreen color + depth target rendered into and shown via ImGui::Image
 	utils::RenderTarget m_renderTarget;
@@ -122,14 +113,12 @@ private:
 	// The viewport area in the window
 	VkExtent2D m_viewportSize{ 800, 600 };
 
-	// Compute: traditional pipeline + layout (no descriptor heap access in compute).
-	VkPipelineLayout m_computePipelineLayout{};
-	VkPipeline       m_computePipeline{};
 	// ImGui descriptor pool (ImGui still uses traditional descriptor sets)
 	VkDescriptorPool m_uiDescriptorPool{};
 
-	// Descriptor heap (VK_EXT_descriptor_heap): replaces traditional descriptor sets for textures/samplers.
+	// Descriptor heap (VK_EXT_descriptor_heap): textures/samplers for bindless shaders.
 	// GPU buffers holding sampler and image descriptors, bound per-frame via vkCmdBind*HeapEXT.
+	// The resource heap lives in g_renderer.m_descriptorHeap; this is the sampler heap.
 	// GPU buffer holding sampler descriptors
 	utils::Buffer m_samplerHeapBuffer{};
 	// Heap metadata needed for VkBindHeapInfoEXT at draw time
@@ -162,9 +151,4 @@ private:
 	utils::FramePacer m_framePacer;
 
 	EVSyncMode m_vSyncMode = EVSyncMode::TearFree;
-
-	// The current image to display
-	int m_imageID = 0;
-	// Maximum textures allowed in the application
-	uint32 m_maxTextures = 10000;
 };

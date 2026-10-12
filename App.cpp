@@ -21,7 +21,8 @@
 
  // ------------------------------------------------------------------
 
- // single header libarary
+// VMA (vk_mem_alloc.h) is a single-header library: this is the one .cpp that compiles its
+// implementation (see vulkanBase.h)
 #define VMA_IMPLEMENTATION
 
 #include "global.h"	// include first in any cpp
@@ -47,27 +48,17 @@ Renderer g_renderer;
 // non-bindless with 1 texture slot (post.slang's g_texture), bound in App::recordGraphicsCommands()
 Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain", 1);
 
-// Screen-space rect of the "Viewport" window's content region, captured once per frame (see the
-// mouse-position block in run()) so the gizmo (drawn later, in drawFrame()) can be positioned with
-// ImGuizmo::SetRect() using the same rect the mouse-picking code already computes.
-ImVec2 g_viewportScreenPos(0, 0);
-ImVec2 g_viewportSize(0, 0);
-
+// the texture recordGraphicsCommands() draws on top of the gradient, loaded by setupScene1()
 CTexHandle g_hndTex0;
-CTexHandle g_hndTex1;
 
 // See global.h's own declaration/comment (its ASSERT() redefinition is the actual reader) -- set
 // below in main(), right after AttachParentConsole().
 bool g_suppressAssertDialogs = false;
 
-// [mesh->getHandle().index] = IB+VB
-Buffer g_meshBuffer(EF_Type_Unknown);
-// [entity->getHandle().index] = mesh->getHandle().index -- see RayPushData::entityMeshIndexAddress
-// (shader_io.h) for why a closest-hit shader needs this indirection instead of using InstanceID()
-// (an entity index, see Renderer::createTopLevelAS) to index g_meshBuffer directly.
-Buffer g_entityMeshIndexBuffer(EF_Type_Unknown);
-
 bool g_InfoHUD = false;
+
+// on-screen error lines, pushed each frame and shown (then cleared) by App::drawFrame()
+std::vector<std::string> g_UIErrors;
 
 // Default mirrors ContextCreateInfo::enableValidationLayers' own NDEBUG-based default
 // (vk_framework.h) so contextConfig.enableValidationLayers can just copy this unconditionally
@@ -87,9 +78,6 @@ bool g_enableValidationLayers = true;
 // extra diagnostics the driver offers -- see the comment where these extensions get enabled,
 // above the VK_EXT_device_fault/VK_NV_device_diagnostic_checkpoints push_back calls -- and logs
 // them before the assert fires. Both are optional; each checks its own availability.
-
-// pushed each frame
-std::vector<std::string> g_UIErrors;
 
 static void LogDeviceFaultInfo(VkDevice device)
 {
@@ -125,8 +113,8 @@ static void LogDeviceFaultInfo(VkDevice device)
 
 	LOGE("=== VK_EXT_device_fault ===");
 	LOGE("description: %s", info.description);
-	// Cross-reference reportedAddress against buffer addresses logged elsewhere (sceneInfoAddr,
-	// indexAddr, vertexAddr, sbtAddr, output buffer, etc.) to identify which resource was involved.
+	// Compare reportedAddress against buffer device addresses (e.g. App::m_sceneInfoBuffer.address)
+	// to identify which resource was involved.
 	for (const auto& a : addressInfos)
 		LOGE("  address fault: type=%d address=0x%llx precision=+-0x%llx",
 			(int)a.addressType, (unsigned long long)a.reportedAddress, (unsigned long long)a.addressPrecision);
@@ -134,36 +122,20 @@ static void LogDeviceFaultInfo(VkDevice device)
 		LOGE("  vendor info: %s code=%lld data=%lld", v.description, (long long)v.vendorFaultCode, (long long)v.vendorFaultData);
 }
 
-// Populates the scene with the same hand-authored content init() used to load unconditionally
-// behind LOAD_BSP_ON_START/LOAD_GLTF_ON_START -- now a runtime action (the "setup #1" button)
-// instead of a compile-time choice, so it can run after init() has already built an empty scene.
 void setupScene1()
 {
 	VkCommandBuffer cmd = utils::beginSingleTimeCommands(g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool);
 	VulkanContext vulkanContext(g_renderer.m_context.getDevice(), g_renderer.m_context.getPhysicalDevice(), g_renderer.m_allocator, cmd, g_renderer.m_context.getGraphicsQueue().queue, g_renderer.m_transientCmdPool);
 
-	// Load the two hand-authored test images first, so they claim descriptor-heap slots
-	// 0/1 -- matching the "Image 1"/"Image 2" debug radio buttons (m_imageID -> scene.texId,
-	// see the Settings window) -- regardless of how many textures a loaded glTF file
-	// registers afterward (see Texture::getHeapIndex). Resources are always resolved
-	// relative to the repo root -- Visual Studio's default debugging working directory is
-	// $(ProjectDir) (this project has no <LocalDebuggerWorkingDirectory> override, i.e. thed
-	// repo root), and running from the command line is expected to match (cd to the repo
-	// root first). Texture::loadFromFile already asserts clearly if a path doesn't resolve.
 	{
 		Texture tex0;
 		tex0.loadFromFile(vulkanContext, "resources/image1.jpg");
 		g_hndTex0 = g_TextureManager.push_back(tex0);
-
-		Texture tex1;
-		tex1.loadFromFile(vulkanContext, "resources/image2.jpg");
-		g_hndTex1 = g_TextureManager.push_back(tex1);
 	}
 
-
-	// createDescriptorHeap() (called once from init()) also builds the one-time sampler heap;
-	// only the resource heap needs rebuilding here, to account for the textures just added --
-	// same reasoning as loadScene()'s equivalent rebuild after reloading textures.
+	// Rebuild the bindless resource heap (createDescriptorHeap() built the one-time sampler heap in
+	// init()). Texture doesn't register itself in m_descriptorHeap yet, so for now this uploads a heap
+	// with just the reserved range -- g_hndTex0 is bound non-bindless instead.
 	g_renderer.m_descriptorHeap.build(g_renderer.m_context.getDevice(), g_renderer.m_allocator, cmd);
 
 	utils::endSingleTimeCommands(cmd, g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool, g_renderer.m_context.getGraphicsQueue().queue);
@@ -295,35 +267,6 @@ static void setGraphicsDynamicState(VkCommandBuffer cmd, const VkViewport& viewp
 	vkCmdSetLogicOpEnableEXT(cmd, VK_FALSE);
 }
 
-// Minimal dynamic state for taa_resolve.slang's draw: no vertex buffer (its vertexMain takes no
-// VertexInput at all), and critically no depth test/write -- setGraphicsDynamicState() above enables
-// both, which would be invalid there (its pass has a real depth attachment; this one has none at
-// all, see the vkCmdBeginRendering call site). Color blend state is skipped too, for the same reason
-// (colorAttachmentCount is 0 here -- nothing to blend against).
-static void setTaaResolveDynamicState(VkCommandBuffer cmd, const VkViewport& viewport, const VkRect2D& scissor)
-{
-	vkCmdSetViewportWithCount(cmd, 1, &viewport);
-	vkCmdSetScissorWithCount(cmd, 1, &scissor);
-	vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
-	vkCmdSetPrimitiveTopology(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-	vkCmdSetPrimitiveRestartEnable(cmd, VK_FALSE);
-	vkCmdSetRasterizerDiscardEnable(cmd, VK_FALSE);
-	vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
-	vkCmdSetCullMode(cmd, VK_CULL_MODE_NONE);
-	vkCmdSetFrontFace(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
-	vkCmdSetDepthBiasEnable(cmd, VK_FALSE);
-	vkCmdSetDepthClampEnableEXT(cmd, VK_FALSE);
-	vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
-	const VkSampleMask sampleMask = 0xFFFFFFFF;
-	vkCmdSetSampleMaskEXT(cmd, VK_SAMPLE_COUNT_1_BIT, &sampleMask);
-	vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
-	vkCmdSetAlphaToOneEnableEXT(cmd, VK_FALSE);
-	vkCmdSetDepthTestEnable(cmd, VK_FALSE);
-	vkCmdSetDepthWriteEnable(cmd, VK_FALSE);
-	vkCmdSetDepthBoundsTestEnable(cmd, VK_FALSE);
-	vkCmdSetStencilTestEnable(cmd, VK_FALSE);
-}
-
 /*--
  * End command buffer recording for the frame. Doesn't touch any App state -- a free
  * function rather than a member.
@@ -334,15 +277,14 @@ static void endCommandRecording(VkCommandBuffer cmd) { VK_CHECK(vkEndCommandBuff
 /*------------------------------------------------------------------
 ## Main Rendering Loop (drawFrame())
 1. Wait on the slot's timeline value, then acquire the next swapchain image
-2. Update vertex positions via the compute shader (vkCmdPushConstants2 + BDA)
-3. Record render commands:
+2. Record render commands:
    - Update the scene info buffer (vkCmdUpdateBuffer to a BDA-addressed buffer)
-   - Bind sampler / resource descriptor heaps
+   - Bind sampler / resource descriptor heaps (for bindless shaders)
    - Set every dynamic state required by shader objects once per frame
    - Bind (vertex, fragment) shader objects via vkCmdBindShadersEXT
-   - Draw colored triangle, swap fragment shader, draw textured triangle
+   - Push data + bind the non-bindless texture, draw the post shader's fullscreen triangle
    - Render the offscreen RenderTarget into the swapchain image via ImGui
-4. Submit and present (signals presentSemaphore[image], advances slot)
+3. Submit and present (signals presentSemaphore[image], advances slot)
 
 There are a lot of comments; to strip all the block documentation, replace
 using this regular expression:
@@ -360,9 +302,7 @@ using this regular expression:
 #include "stb_image.h"
 
 // Screenshots (CaptureRenderTargetToPNG below) -- PNG specifically because it's lossless (no
-// compression artifacts to confuse a later pixel-exact comparison, e.g. tests::RunSelfTest's own
-// gold-image check), same reasoning stb_image_write's own header gives for preferring it over its
-// JPEG writer.
+// compression artifacts to confuse a later pixel-exact comparison).
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 // stb_image_write.h's own PNG writer uses plain sprintf() internally (not this project's own code,
 // nothing to fix on our side) -- MSVC's C4996 flags that as deprecated-in-favor-of-sprintf_s, and
@@ -373,12 +313,12 @@ using this regular expression:
 #include "stb_image_write.h"
 #pragma warning(pop)
 
-// Captures renderTarget's current color image -- already the final, tonemapped/sRGB-encoded,
-// ImGui-overlay-free frame (see this codebase's own extensive gamma/tonemap work) -- to a lossless
-// PNG file, creating path's parent directory (e.g. "screenshots/") if it doesn't exist yet.
+// Captures renderTarget's current color image -- already the final, sRGB-encoded (post.slang),
+// ImGui-overlay-free frame -- to a lossless PNG file, creating path's parent directory (e.g.
+// "screenshots/") if it doesn't exist yet.
 // Synchronous: submits its own single-time command buffer and blocks (endSingleTimeCommands' fence
 // wait) until the GPU-side copy actually lands, so the file is complete and readable the moment this
-// returns -- callers (the "Screenshot" UI button and App::selfTestTick()) never need to
+// returns -- the caller (the "Screenshot" UI button) never needs to
 // know this touched the GPU at all. VK_FORMAT_R8G8B8A8_UNORM only (asserted) -- the one format every
 // RenderTarget in this codebase actually uses (m_renderTarget's own .color =
 // {VK_FORMAT_R8G8B8A8_UNORM}), and the one stb_image_write's plain 4-bytes-per-pixel RGBA call below
@@ -391,8 +331,7 @@ static bool CaptureRenderTargetToPNG(utils::RenderTarget& renderTarget, const st
 	const VkDeviceSize bufferSize = VkDeviceSize(size.width) * size.height * 4;
 
 	// One-off readback, not part of the steady-state per-frame render loop -- created and destroyed
-	// right here instead of joining the persistent globals (g_ReadbackBuffer etc.) that exist
-	// specifically because THEY are touched every frame.
+	// right here.
 	utils::Buffer staging = g_renderer.m_allocator.createBuffer(bufferSize,
 		VK_BUFFER_USAGE_2_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_AUTO,
 		VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT);
@@ -432,7 +371,7 @@ static bool CaptureRenderTargetToPNG(utils::RenderTarget& renderTarget, const st
 
 #include <GLFW/glfw3native.h>
 
-//--- Geometry -------------------------------------------------------------------------------------------------------------
+//--- Window icon ----------------------------------------------------------------------------------------------------------
 
 // BGRA (Windows DIB byte order, read as a 32-bit int: 0xAARRGGBB) -> RGBA (0xAABBGGRR) for GLFWimage.
 // Must preserve A and G untouched and only swap R/B -- the previous version OR'd the alpha byte
@@ -500,7 +439,6 @@ App::App(VkExtent2D size)
 			int* src = (int*)BM_32_bit_color.bmBits;
 			for (int y = images[0].height - 1; y >= 0; --y) {
 				for (int x = 0; x < images[0].width; ++x) {
-					// seems glfwSetWindowIcon() doesn't support alpha
 					mem[y * images[0].width + x] = RGBSwizzle(*src++);
 				}
 			}
@@ -538,9 +476,9 @@ void App::run()
 	// Main rendering loop
 	while (!glfwWindowShouldClose(m_window))
 	{
-		// Logs the actual measured frame rate once per second, so VSync Mode behavior (and the
-		// startup "bounce" above) can be verified/diagnosed from VVerse.txt without needing to
-		// watch the window.
+		// Change to if(true) to log the actual measured frame rate once per second, so VSync Mode
+		// behavior (and the startup "bounce" below) can be verified/diagnosed from the log file
+		// (<exe-name>.txt) without needing to watch the window.
 		if(false)
 		{
 			static double fpsWindowStart = glfwGetTime();
@@ -629,25 +567,10 @@ void App::run()
 		}
 		/* END Docking */
 
-		// We define "viewport" with no padding an retrieve the rendering area
+		// We define "viewport" with no padding and retrieve the rendering area
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
 		ImGui::Begin("Viewport");
 		ImVec2 windowSize = ImGui::GetContentRegionAvail();
-		{
-			// Mouse position for interaction.slang's pick ray: GetCursorScreenPos() here is the
-			// content region's top-left in the same (global, OS) screen space as GetIO().MousePos,
-			// since ImGui::Image() below (the actual rendered frame, drawn later in drawFrame()) is
-			// the first thing drawn in this same window/content-region and doesn't move the cursor
-			// before it. Same NDC convention as ray.slang's fragPos (-1..1, pre-flip).
-			ImVec2 viewportScreenPos = ImGui::GetCursorScreenPos();
-			ImVec2 mousePos = ImGui::GetIO().MousePos;
-			float2 localPos(mousePos.x - viewportScreenPos.x, mousePos.y - viewportScreenPos.y);
-
-			const bool inView = windowSize.x > 0 && windowSize.y > 0 && localPos.x >= 0.0f && localPos.y >= 0.0f && localPos.x < windowSize.x && localPos.y < windowSize.y;
-
-			g_viewportScreenPos = viewportScreenPos;
-			g_viewportSize = windowSize;
-		}
 		ImGui::End();
 		ImGui::PopStyleVar();
 
@@ -689,15 +612,12 @@ void App::run()
 			// Record rendering commands
 			drawFrame(cmd);
 
-			// drawFrame() may have created staging buffers this frame (e.g. dispatchRayTracing()'s
-			// per-frame g_meshBuffer/g_entityMeshIndexBuffer rebuild, Buffer::initRaw() under the
-			// hood) -- queue each for the same frame-safe deferred destruction every other Buffer
-			// already gets (see DeferredRelease.h), stamped with this frame's value via the
+			// Uploads (Buffer::initRaw(), Texture loading, descriptor heap build -- this frame or
+			// one-off ones like init()'s) leave their staging buffers in g_renderer.m_allocator --
+			// queue each for the same frame-safe deferred destruction every other Buffer already gets
+			// (see DeferredRelease.h), stamped with this frame's value via the
 			// g_deferredRelease.BeginFrame() call above, so they're only actually freed once the GPU
-			// has proven it finished the vkCmdCopyBuffer that reads them. Previously these only ever
-			// got swept once, at the very first frame (see prepareFrameResources()'s old one-shot
-			// startupStagingBuffersFreed) -- an unbounded per-frame leak once dispatchRayTracing()
-			// started rebuilding those two buffers every frame instead of just once.
+			// has proven it finished the copies that read them.
 			for (const utils::Buffer& stagingBuffer : g_renderer.m_allocator.takeStagingBuffers())
 				g_deferredRelease.Release(stagingBuffer);
 
@@ -732,31 +652,32 @@ void App::init()
 	 * the rest of this file.
 	 *
 	 *   Graphics shaders --> Shader objects (VK_EXT_shader_object).
-	 *     There is no graphics VkPipeline at all. Three VkShaderEXT objects
-	 *     (one vertex + two fragment variants) are created up front; at draw
-	 *     time vkCmdBindShadersEXT picks the (vert, frag) pair, and every
-	 *     piece of state that used to live in a pipeline (rasterization,
-	 *     depth/stencil, blend, vertex input, ...) is set with a vkCmdSet*EXT
-	 *     call. See createGraphicsShaders() and setGraphicsDynamicState().
+	 *     There is no graphics VkPipeline at all. Each Shader creates one
+	 *     vertex + one fragment VkShaderEXT; at draw time vkCmdBindShadersEXT
+	 *     binds the pair, and every piece of state that used to live in a
+	 *     pipeline (rasterization, depth/stencil, blend, vertex input, ...) is
+	 *     set with a vkCmdSet*EXT call. See Shader::createGfx() and
+	 *     setGraphicsDynamicState().
 	 *
-	 *   Textures / samplers --> Descriptor heap (VK_EXT_descriptor_heap).
-	 *     Sampler and image descriptors live in two GPU buffers (sampler heap
-	 *     + resource heap). Shaders index them by integer slot. The graphics
-	 *     shader objects carry VK_SHADER_CREATE_DESCRIPTOR_HEAP_BIT_EXT and no
-	 *     descriptor set layouts. See createDescriptorHeap() and
-	 *     recordGraphicsCommands().
+	 *   Textures / samplers, two options per Shader (see Shader::m_textureCount):
+	 *     - Bindless --> Descriptor heap (VK_EXT_descriptor_heap). Sampler and
+	 *       image descriptors live in two GPU buffers (sampler heap + resource
+	 *       heap); shaders index them by integer slot. Those shader objects carry
+	 *       VK_SHADER_CREATE_DESCRIPTOR_HEAP_BIT_EXT and no descriptor set
+	 *       layouts. See createDescriptorHeap() and recordGraphicsCommands().
+	 *     - Non-bindless --> classic descriptor set 0 with combined image
+	 *       samplers (used by g_post). See Shader::cmdBindTextures().
 	 *
 	 *   Storage / uniform buffers --> Buffer device address (BDA).
 	 *     The shader holds a buffer_reference (a typed GPU pointer) and
-	 *     dereferences it directly. No descriptor needed. See m_vertexBuffer,
-	 *     m_sceneInfoBuffer.
+	 *     dereferences it directly. No descriptor needed. See m_sceneInfoBuffer.
 	 *
-	 *   Small per-draw data --> vkCmdPushDataEXT (graphics) or
-	 *                            vkCmdPushConstants2 (compute).
-	 *     Graphics has no pipeline layout, so traditional push constants are
-	 *     unavailable; vkCmdPushDataEXT writes directly to the shader's
-	 *     push_constant block. Compute keeps the legacy path with a real
-	 *     VkPushConstantRange in its pipeline layout.
+	 *   Small per-draw data --> vkCmdPushDataEXT (bindless) or
+	 *                            vkCmdPushConstants2 (non-bindless).
+	 *     A bindless shader has no pipeline layout, so traditional push
+	 *     constants are unavailable; vkCmdPushDataEXT writes directly to the
+	 *     shader's push_constant block. A non-bindless shader keeps the legacy
+	 *     path with a real VkPushConstantRange. See Shader::cmdPushData().
 	 *
 	 *   ImGui still uses traditional VkDescriptorSet/VkDescriptorPool and its
 	 *   own VkPipeline internally (m_uiDescriptorPool); that path is
@@ -814,11 +735,10 @@ void App::init()
 		rtFeatures.rayTracingPipeline = VK_TRUE;
 		contextConfig.deviceExtensions.push_back({ VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME, true, &rtFeatures });
 
-		// NRD (g_nrdDenoiser, NrdIntegration.h): REBLUR's Blur/PostBlur passes use SPIR-V's
-		// DerivativeGroupQuadsKHR (quad-group screen-space derivatives in a compute shader) --
-		// without this feature enabled, vkCreateShaderModule rejects those pipelines' pre-embedded
-		// SPIR-V outright (VUID-VkShaderModuleCreateInfo-pCode-08740), confirmed live the first time
-		// NRD's pipelines were created against a device that didn't have it on.
+		// Compute shader derivatives (SPIR-V DerivativeGroupQuadsKHR: quad-group screen-space
+		// derivatives in a compute shader) -- no current shader uses it. Without it enabled,
+		// vkCreateShaderModule rejects SPIR-V that does (VUID-VkShaderModuleCreateInfo-pCode-08740),
+		// e.g. the NRD denoiser's REBLUR passes.
 		VkPhysicalDeviceComputeShaderDerivativesFeaturesKHR computeShaderDerivativesFeatures{
 			VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COMPUTE_SHADER_DERIVATIVES_FEATURES_KHR };
 		computeShaderDerivativesFeatures.computeDerivativeGroupQuads = VK_TRUE;
@@ -829,9 +749,10 @@ void App::init()
 	// into VK_CHECK (vk_framework.h). VK_EXT_device_fault gives a fault description plus GPU
 	// addresses implicated in the fault; VK_NV_device_diagnostic_checkpoints (NVIDIA) reports which
 	// named command-buffer checkpoint the GPU last reached before dying, so a hang can be localized
-	// to a phase (e.g. "the ray tracing dispatch" vs. "the graphics pass") without re-deriving it by
-	// hand. Both optional (false): not every driver supports them, and vkGetDeviceProcAddr is
-	// guaranteed by spec to return null for an extension's functions when it wasn't enabled, so the
+	// to a phase without re-deriving it by hand (nothing records vkCmdSetCheckpointNV markers yet,
+	// so it reports none for now). Both optional (false): not every driver supports them, and
+	// vkGetDeviceProcAddr is guaranteed by spec to return null for an extension's functions when it
+	// wasn't enabled, so the
 	// availability checks at the call sites are enough -- no need to assert here.
 	VkPhysicalDeviceFaultFeaturesEXT faultFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FAULT_FEATURES_EXT };
 	contextConfig.deviceExtensions.push_back({ VK_EXT_DEVICE_FAULT_EXTENSION_NAME, false, &faultFeatures });
@@ -914,10 +835,10 @@ void App::init()
 
 	Log("\n");
 
-	extern CObjManager<CTexHandle, Texture> g_TextureManager;
 	g_TextureManager.InitOnce(4096);
 
-	// Create GPU buffers (SSBO) containing the vertex data and the point data, and the image (uploading data to GPU)
+	// Renderer (shader cache, descriptor heap), every IAppInit object (compiles the shaders) and the
+	// descriptor heap buffers
 	{
 		VkCommandBuffer cmd = utils::beginSingleTimeCommands(g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool);
 
@@ -927,16 +848,9 @@ void App::init()
 		// after g_renderer.init as this is where the shadercache is loaded
 		g_EventManager.callAppInit(EF_Type_Mask, context);
 
-		// Image-based lighting is NOT loaded here -- see setupScene1()/setupScene2()/loadScene()'s
-		// own g_ibl.load() call sites (each guarded by !g_ibl.isValid()) for why loading it this
-		// early, before any real scene texture, broke ray tracing entirely (it silently claimed
-		// descriptor-heap index 0, which Shader::updateRayDescriptorSet() requires to always be a
-		// real Texture2D).
-
 		// Create the descriptor heap buffers (sampler + resource) and upload them to the GPU.
-		// This must happen after every texture (test images + any glTF material textures) has
-		// registered itself in g_renderer.m_descriptorHeap, since build() uploads whatever has
-		// accumulated there in one pass.
+		// build() uploads whatever has been registered in g_renderer.m_descriptorHeap so far;
+		// setupScene1() below rebuilds the resource heap after loading textures.
 		createDescriptorHeap(cmd);
 
 		utils::endSingleTimeCommands(cmd, g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool, g_renderer.m_context.getGraphicsQueue().queue);
@@ -947,16 +861,14 @@ void App::init()
 	// already gets, instead of each caller managing its own staging buffers' lifetime by hand.
 
 	// Create a buffer to store the scene information, updated once per frame via vkCmdUpdateBuffer.
-	// The shader accesses it through its buffer device address (BDA) and also binds it as a
-	// storage buffer descriptor in the ray-tracing pass.
+	// The shader accesses it through its buffer device address (BDA).
 	m_sceneInfoBuffer = g_renderer.m_allocator.createBuffer(sizeof(shaderio::SceneInfo),
 		VK_BUFFER_USAGE_2_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_2_UNIFORM_BUFFER_BIT
 		| VK_BUFFER_USAGE_2_TRANSFER_DST_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	DBG_VK_NAME(m_sceneInfoBuffer.buffer);
 
-	// Load the test textures at startup (same as the "setup #1" button) -- g_hndTex0 is what
-	// recordGraphicsCommands() displays on top of the gradient.
+	// Load the test texture (g_hndTex0, displayed on top of the gradient by recordGraphicsCommands())
 	setupScene1();
 }
 
@@ -983,11 +895,7 @@ void App::destroy()
 
 	if (device)
 	{
-		vkDestroyPipeline(device, m_computePipeline, nullptr);
-		vkDestroyPipelineLayout(device, m_computePipelineLayout, nullptr);
-
-
-		// call deinit() on all objects that listen to g_deInitListener
+		// call deinit() on all IAppInit objects registered in g_EventManager
 		// e.g. class Shader, class Buffer
 		EventContext context{ device, g_renderer.m_allocator };
 		g_EventManager.callAppDeInit(EF_Type_Mask, context);
@@ -1008,11 +916,8 @@ void App::destroy()
 	g_renderer.m_allocator.destroyBuffer(m_sceneInfoBuffer);     // Scene info GPU buffer (accessed via BDA)
 	g_renderer.m_allocator.destroyBuffer(m_samplerHeapBuffer);   // Descriptor heap: sampler GPU buffer
 
-	// Every loaded texture (hand-authored test images + any glTF material textures) is
-	// tracked in g_TextureManager, the same way meshes/materials are tracked in their own
-	// managers -- destroy each one's GPU resources here.
+	// Every loaded texture is tracked in g_TextureManager -- destroy each one's GPU resources here.
 	{
-		extern CObjManager<CTexHandle, Texture> g_TextureManager;
 		const uint32 textureCount = g_TextureManager.GetElementCount();
 		for (uint32 i = 0; i < textureCount; ++i)
 		{
@@ -1025,9 +930,7 @@ void App::destroy()
 
 	// device is confirmed idle (VK_CHECK(vkDeviceWaitIdle(device)) above), and every
 	// Buffer::deinit() call from this shutdown sequence -- including g_EventManager's
-	// callAppDeInit() above, which reaches every still-alive Buffer (mesh vertex/index/BLAS,
-	// g_meshBuffer, each ray tracing Shader's own m_sbt, g_outputBuffer, ...) --
-	// has already run by this
+	// callAppDeInit() above, which reaches every still-alive Buffer -- has already run by this
 	// point, so it's safe to free everything g_deferredRelease is still holding
 	// unconditionally, ahead of destroying the allocator that owns it.
 	g_deferredRelease.deinit(g_renderer.m_allocator);
@@ -1135,8 +1038,7 @@ void App::drawFrame(VkCommandBuffer cmd)
 		{
 			// Scanned lazily, once, from screenshots/ itself (rather than kept in Settings.ini or
 			// reset to 0 every launch) so a fresh session's screenshots number on from wherever the
-			// last session left off instead of overwriting them -- see readme.md's own "increasing
-			// index, screenshot folder, create if needed" todo this satisfies.
+			// last session left off instead of overwriting them.
 			static int nextIndex = -1;
 			if (nextIndex < 0)
 			{
@@ -1164,21 +1066,13 @@ void App::drawFrame(VkCommandBuffer cmd)
 		}
 
 		ImGui::Separator();
-
-		if (ImGui::Button("setup #1"))
-		{
-			setupScene1();
-		}
 	}
 	ImGui::End();
 
 	ImGui::Render();  // This is creating the data to draw the UI (not on GPU yet)
 
-	/*--
-	 * - A compute shader is modifying the vertex position
-	 * - Draw commands for the triangles are recorded to the command buffer, with target image in the RenderTarget
-	-*/
-	recordGraphicsCommands(cmd);  // Record the rendering commands for the triangles
+	// Record the scene pass (the post shader's fullscreen triangle) into the RenderTarget
+	recordGraphicsCommands(cmd);
 
 	// Make the RenderTarget color writes visible to ImGui's fragment shader read.
 	const VkMemoryBarrier2 rtToImGui{
@@ -1279,10 +1173,8 @@ void App::endFrame(VkCommandBuffer cmd)
 void App::onViewportSizeChange(VkExtent2D size)
 {
 	m_viewportSize = size;
-	// Recreate the RenderTarget to the size of the viewport.
-	// Full device wait, not just this queue: we're about to free g_outputBuffer below, and a
-	// queue-only wait doesn't guarantee no other in-flight work (e.g. deferred host operations
-	// for ray tracing) still references it.
+	// Recreate the RenderTarget to the size of the viewport. Wait for the device first: in-flight
+	// frames may still be rendering to (or ImGui sampling from) the images about to be destroyed.
 	VK_CHECK(vkDeviceWaitIdle(g_renderer.m_context.getDevice()));
 
 	{
@@ -1333,8 +1225,6 @@ void App::updateSceneBuffer(VkCommandBuffer cmd) const
 	// Updating the data for the frame
 	shaderio::SceneInfo sceneInfo{};
 
-	float time = static_cast<float>(ImGui::GetTime());
-
 	sceneInfo.resolution = float2(m_viewportSize.width, m_viewportSize.height);
 	sceneInfo.clearColor = float3(0, 1, 0);	// green
 
@@ -1358,12 +1248,9 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 {
 	DBG_VK_SCOPE(cmd);  // <-- Helps to debug in Nsight
 
-	// Update g_lights before the scene buffer, which points SceneInfo::lightsAddress/lightCount at
-	// it (cannot be done inside dynamic rendering)
+	// before vkCmdBeginRendering: vkCmdUpdateBuffer cannot be recorded inside dynamic rendering
 	updateSceneBuffer(cmd);
 
-	const VkDeviceSize offsets[] = { 0 };
-	const VkDeviceSize sizes[] = { VK_WHOLE_SIZE };
 	const VkViewport   viewport{ 0.0F, 0.0F, float(m_viewportSize.width), float(m_viewportSize.height), 0.0F, 1.0F };
 	const VkRect2D     scissor{ {0, 0}, m_viewportSize };
 
@@ -1371,19 +1258,13 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	 * Prepare push data: Shader::cmdPushData() sends it to the shader's push_constant block with
 	 * vkCmdPushDataEXT for a bindless (descriptor heap) shader -- its pipeline layout is
 	 * VK_NULL_HANDLE, so traditional push constants are unavailable -- or with vkCmdPushConstants2
-	 * for a non-bindless one (like g_post). Push data carries only:
+	 * for a non-bindless one (like g_post). Push data carries only per-draw values:
 	 *   - The buffer device address of the SceneInfo buffer (updated once per frame above)
-	 *   - The per-draw triangle color (changes between draw calls)
+	 *   - The model matrix (identity, not read by post.slang)
 	 * The shader reads SceneInfo from GPU memory via buffer reference, keeping push data small.
 	-*/
 	shaderio::GraphicsPushData pushData{};
 	pushData.sceneInfoAddress = m_sceneInfoBuffer.address;  // Points to the GPU buffer updated above
-	// materialBufferAddress is filled in below, after g_materialBuffer's lazy init (~30 lines down)
-	// runs: on the very first call to this function g_materialBuffer doesn't exist yet, so reading
-	// its address here would capture 0 -- which the fragment shader then dereferences
-	// ((MaterialData*)pushData.materialBufferAddress + materialID in shader.rast.slang), causing a
-	// null-pointer read fault on frame 1 only (frame 2+ self-heals since the buffer already exists
-	// by then). This was a real, reproduced VK_ERROR_DEVICE_LOST right after startup.
 	pushData.modelMatrix = glm::mat4(1.0f);
 
 	VkClearColorValue clearColor; // dark yellow
@@ -1422,8 +1303,8 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 		.pDepthAttachment = &depthAttachment,
 	};
 
-	// Bind the descriptor heap buffers so shaders can access textures and samplers by index.
-	// This replaces the traditional vkCmdBindDescriptorSets2 call that was used for the texture descriptor set.
+	// Bind the descriptor heap buffers so bindless shaders can access textures and samplers by index
+	// (non-bindless shaders like g_post bind a classic descriptor set instead, see Shader::cmdBindTextures()).
 	// The sampler heap provides sampler descriptors (linear, nearest, etc.) and the resource heap provides image descriptors (loaded textures).
 	// Each VkBindHeapInfoEXT describes the heap buffer address, total size, and where the mandatory reserved range sits within the buffer.
 	const VkBindHeapInfoEXT samplerHeapBind{
@@ -1449,8 +1330,7 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	// ---- Dynamic state ----------------------------------------------------
 	// With shader objects, every piece of state that used to live in the
 	// graphics pipeline must be set explicitly with a vkCmdSet*EXT call before
-	// each draw. We set everything once here since none of it changes between
-	// the two draws below.
+	// each draw. We set everything once here, before the draw below.
 	setGraphicsDynamicState(cmd, viewport, scissor);
 
 	// post #################################
@@ -1519,8 +1399,8 @@ void App::initImGui()
 	// "vkQueueSubmit(): ... performs a layout transition on presentable VkImage ... but the
 	// image has not been acquired" whenever a popup (e.g. a combo dropdown) got positioned
 	// outside the main window and ImGui spun up a secondary viewport/swapchain for it -- more
-	// likely whenever the Settings panel was tall enough to push the popup out of bounds
-	// (e.g. with many per-material "Albedo Color" pickers). Docking itself (panels within the
+	// likely whenever the Settings panel was tall enough to push the popup out of bounds.
+	// Docking itself (panels within the
 	// one main window) has no extra swapchains involved and isn't affected by removing this.
 	ImGui::GetIO().ConfigFlags = ImGuiConfigFlags_DockingEnable;
 }
@@ -1539,10 +1419,8 @@ void App::initImGui()
 -*/
 void App::createDescriptorHeap(VkCommandBuffer cmd)
 {
-	// Every texture (hand-authored test images + any glTF-loaded material textures) has
-	// already registered itself into g_renderer.m_descriptorHeap and, at the same index,
-	// g_renderer.m_rtTextureViews -- see Texture::uploadPixels. build() uploads whatever has
-	// accumulated there to the GPU in one pass.
+	// Resource heap: build() uploads whatever has been registered in g_renderer.m_descriptorHeap to
+	// the GPU in one pass (nothing at startup; setupScene1() rebuilds it).
 	g_renderer.m_descriptorHeap.build(g_renderer.m_context.getDevice(), g_renderer.m_allocator, cmd);
 
 	// Query the descriptor heap properties: descriptor sizes, alignment, and maximum heap capacities
@@ -1723,15 +1601,15 @@ int main(int argc, char** argv)
 	// which points at IsDebuggerPresent() itself spuriously returning true (a known false-positive
 	// caused by overlay/injection software -- GPU overlays, Discord, RGB tools, etc. -- attaching to
 	// the process). The actual requirement is simpler anyway: suppress the dialog specifically for a
-	// console-driven run (--test/--selftest, or any unattended launch), not "whenever no debugger",
+	// console-driven run (any scripted/unattended launch), not "whenever no debugger",
 	// so key it on the thing we can directly observe instead of a signal that's proving unreliable.
 	if (hasConsole)
 	{
-		// ASSERT (extern/vk_framework.h) uses plain ASSERT() in Debug builds, whose default
-		// MSVC CRT behavior is an interactive "Debug Error! Abort/Retry/Ignore" dialog, and an
-		// unhandled exception would otherwise hit Windows Error Reporting's "close program /
-		// debug" dialog too -- both block forever with no attached desktop/human to click
-		// them, which defeats unsupervised runs (--test, or any scripted/automated launch).
+		// Project code's ASSERT (global.h) checks g_suppressAssertDialogs itself, but the CRT's own
+		// assert()/_CrtDbgReport (used by vendored libraries) shows an interactive "Debug Error!
+		// Abort/Retry/Ignore" dialog in Debug builds, and an unhandled exception would otherwise hit
+		// Windows Error Reporting's "close program / debug" dialog too -- both block forever with no
+		// attached desktop/human to click them, which defeats any scripted/automated launch.
 		//
 		// Both a report hook and _CrtSetReportMode/_CrtSetReportFile are set below -- belt and
 		// braces, since which one (if either) a given ASSERT() call site actually consults has
@@ -1786,7 +1664,7 @@ int main(int argc, char** argv)
 	LOGI("hasConsole = %d", (int)hasConsole);
 	LOGI("isDebuggerPresent = %d", (int)isDebuggerPresent);	
 
-	// open Retry/Abort debug window in VisualStudio, even if run from console and not debugger attached
+	// uncomment to test ASSERT handling (debugger break, or log + abort when run from a console)
 //	ASSERT(0);
 
 	{

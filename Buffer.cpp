@@ -48,7 +48,7 @@ void Buffer::initRaw(utils::ResourceAllocator& allocator, VkCommandBuffer& cmd, 
 	const VkDeviceSize bufferSize = stride * count;
 
 	m_data = allocator.createBufferAndUploadData(cmd, data, bufferSize, flags);
-	DBG_VK_NAME2(m_data.buffer, "fdsa");
+	DBG_VK_NAME2(m_data.buffer, "Buffer");
 
 	m_size = bufferSize;
 	m_stride = stride;

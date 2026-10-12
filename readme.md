@@ -4,14 +4,14 @@
 A starting point for a Vulkan renderer by Martin Mittring
 
 Features:
-* Shader cache for faster startup (supporting includes, cache key is file content based, date)
+* Shader cache for faster startup (supporting includes, cache key is file content based, not date)
 * Slang (HLSL like but allows for differential, compiles slower)
 * ImGui (2D Immediate Mode GUI)
 
 Platform: Windows11 x64, later Linux
 
-Run with commandline parameter: --test for running the headless (no GPU) tests, --selftest for the
-scripted real-GPU/screenshot-compare tests (see TestMode.h)
+Command line parameters: --validate=0 / --validate=1 to turn the Vulkan validation layers off/on
+(default: on in Debug, off in Release)
 
 ### todo (next ones on top):
 *

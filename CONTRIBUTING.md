@@ -11,7 +11,7 @@ Thank you for contributing to this project. This document describes repository r
 
 ## Coding Standards
 - use uint8, int32, ... uint64 instead of _t variants
-- Include globals.h in every cpp first line
+- Include global.h in every cpp first line
 - m_ for class members, struct should not have that
 - Class and Strut names are pascal case
 - Variable and Function names are camel case

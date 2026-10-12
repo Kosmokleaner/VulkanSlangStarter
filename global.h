@@ -35,7 +35,7 @@ typedef glm::vec4 float4;
 // Set true (main(), App.cpp, right after AttachParentConsole()) when a console launched
 // this process -- see ASSERT's own comment just below for why it matters.
 extern bool g_suppressAssertDialogs;
-// Implemented at the application layer (App.cpp/Platform.cpp) -- logs and terminates
+// Implemented in Platform.cpp -- logs and terminates
 // directly, with no dialog-capable code anywhere in the path. See ASSERT's own comment.
 void VVerseAssertFailed(const char* expression, const char* file, int line);
 
@@ -52,9 +52,9 @@ void VVerseAssertFailed(const char* expression, const char* file, int line);
 // through the documented APIs (_CrtSetReportHook, _CrtSetReportMode) even when confirmed to
 // execute; VVerseAssertFailed() sidesteps that mechanism entirely instead of fighting it. This
 // also avoids a second, structural problem: <assert.h> has no include guard (by design, so code
-// can toggle NDEBUG mid-file), so any of it being re-included after a redefinition -- which many
-// headers do directly (ObjManager.h, Parse.h, Timer.h, ...) -- would silently undo that
-// redefinition; checking the flag inline here has no such fragility.
+// can toggle NDEBUG mid-file), so any of it being re-included after a redefinition -- which
+// vendored headers may do directly -- would silently undo that redefinition; checking the flag
+// inline here has no such fragility.
 #ifdef NDEBUG
 #define VVERSE_ASSERT_IMPL(condition, message)                                                     \
 	do                                                                                              \

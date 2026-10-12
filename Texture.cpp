@@ -12,17 +12,14 @@ CObjManager<CTexHandle, Texture> g_TextureManager;
 void Texture::uploadPixels(VulkanContext& vulkanContext, uint32 width, uint32 height, const uint8_t* rgba, const std::string& debugName)
 {
 	// m_loadFromFile is already set by whichever of loadFromFile()/loadFromMemory() called us --
-	// cache the decoded pixels only for the file-less case, so saveTextures() has something to
-	// persist and loadScene() can rebuild this exact texture later (see m_sourcePixels' own
-	// comment); skipped for a real file since m_name/loadFromFile() already reloads it more
-	// compactly (JPG bytes, not raw RGBA) and this can be a large amount of memory to keep around
-	// (e.g. a whole BSP level's worth of lightmaps) for something otherwise never read again.
+	// cache the decoded pixels only for the file-less case (see m_sourcePixels' own comment);
+	// skipped for a real file since m_name/loadFromFile() already reloads it more compactly (JPG
+	// bytes, not raw RGBA) and this can be a large amount of memory to keep around.
 	//
-	// The `rgba != (const uint8_t*)m_sourcePixels.data()` check guards a real use-after-free:
-	// loadScene() reloads a file-less texture by calling loadFromMemory() with this *same* vector's
-	// own data() as the source (see its call site) -- without this check, assign() would free
-	// m_sourcePixels' existing buffer (the very memory `rgba` points into) before copying from it,
-	// reading freed memory (confirmed live as an access violation in vcruntime's allocator).
+	// The `rgba != (const uint8_t*)m_sourcePixels.data()` check guards a use-after-free when
+	// rebuilding a file-less texture from its own cache (loadFromMemory(m_sourcePixels.data(), ...)):
+	// without it, assign() would free m_sourcePixels' existing buffer (the very memory `rgba` points
+	// into) before copying from it.
 	if (!m_loadFromFile && rgba != (const uint8_t*)m_sourcePixels.data())
 	{
 		m_sourceWidth = width;
@@ -131,7 +128,7 @@ void Texture::loadFromMemory(VulkanContext& vulkanContext, const uint8_t* encode
 
 	int w = 0, h = 0, comp = 0;
 	stbi_uc* data = stbi_load_from_memory(encodedData, (int)encodedSize, &w, &h, &comp, 4);
-	ASSERT(data != nullptr, "Could not decode glTF texture image!");
+	ASSERT(data != nullptr, "Could not decode texture image!");
 	uploadPixels(vulkanContext, uint32(w), uint32(h), data, debugName);
 	stbi_image_free(data);
 }

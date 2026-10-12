@@ -2,9 +2,9 @@
 
 //--- VMA implementation bootstrap ----------------------------------------------
 // The Vulkan Memory Allocator header is "single-TU": exactly one .cpp must
-// define VMA_IMPLEMENTATION before including vk_mem_alloc.h. This is that .cpp;
-// every other piece of code in this project reaches VMA through vk_framework.h,
-// which brings in the header (types only) wherever it is included.
+// define VMA_IMPLEMENTATION before including vk_mem_alloc.h. App.cpp is that .cpp
+// (it defines it before including this header); everywhere else this header
+// brings in vk_mem_alloc.h for the types only.
 //
 // Volk must precede VMA so vk_mem_alloc.h sees the Vulkan types.
 #include "volk.h"

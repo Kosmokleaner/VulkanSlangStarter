@@ -4,7 +4,8 @@
 #include "Buffer.h"
 #include "DescriptorHeap.h"
 
-// no command pool, the assumption is after functions using this context the cmd is submitted
+// Everything a one-off GPU upload (e.g. Texture::loadFromFile) needs. cmd is a single-time command
+// buffer (allocated from transientCmdPool) that the caller submits after these functions return.
 struct VulkanContext
 {
 	VkDevice device;
@@ -26,15 +27,14 @@ public: // todo
 	// The VMA allocator; same reasoning -- reachable as g_renderer.m_allocator.
 	utils::ResourceAllocator m_allocator;
 
-	// Must match Shader::kMaxFramesInFlight / utils::Swapchain::kPreferredFramesInFlight
-	// (extern/vk_framework.h).
+	// Must be >= utils::Swapchain::kPreferredFramesInFlight (extern/vk_framework.h). Sizes the
+	// per-frame-in-flight resources, e.g. Shader::m_descSet and m_tlasSlots.
 	static constexpr uint32 kMaxFramesInFlight = 2;
 
-	// Everything createTopLevelAS needs to rebuild the TLAS, duplicated per frame-in-flight slot
-	// (m_tlasSlots) so that rebuilding it every frame never has to wait for a previous frame's ray
-	// tracing dispatch to finish reading the slot it's still using -- the same double-buffering
-	// idea as App::m_frameData, reusing its existing per-slot GPU-completion wait instead
-	// of adding any new fence/barrier.
+	// Ray tracing TLAS resources, duplicated per frame-in-flight slot (m_tlasSlots) so that
+	// rebuilding it every frame never has to wait for a previous frame's ray tracing dispatch to
+	// finish reading the slot it's still using -- the same double-buffering idea as App::m_frameData.
+	// Not built yet (ray tracing isn't implemented), only released in deinit().
 	struct TlasSlot
 	{
 		// buffer with per-instance data (transform, instance id, BLAS reference, flags, mask)

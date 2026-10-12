@@ -20,15 +20,15 @@ public:
 
 	//
 	// aspectMask defaults to VK_IMAGE_ASPECT_COLOR_BIT; pass VK_IMAGE_ASPECT_DEPTH_BIT for a depth
-	// image's own view (e.g. RenderTarget's depth buffer, read back as a Texture2D for TAA's
-	// raster-path reprojection) -- VUID-VkImageDescriptorInfoEXT-pView-11430 requires it match the
+	// image's own view (e.g. a RenderTarget's depth buffer read back as a Texture2D) --
+	// VUID-VkImageDescriptorInfoEXT-pView-11430 requires it match the
 	// image's own aspect, a color aspect view against a depth/stencil image is invalid.
 	// mipCount > 1 registers a view spanning the image's whole generated mip chain (see Texture.cpp's
 	// own mip generation) instead of just mip 0.
 	uint32 addTexture(VkImage image, VkFormat format, VkImageLayout layout, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, uint32 mipCount = 1);
 	// Same as addTexture(), but registers a VK_IMAGE_VIEW_TYPE_CUBE view spanning all 6 layers and
 	// mipCount mip levels instead of addTexture()'s single-layer, single-mip VK_IMAGE_VIEW_TYPE_2D
-	// -- for an IBL environment cubemap (see IBLEnvironment.h), sampled bindlessly the same way
+	// -- e.g. for an environment cubemap, sampled bindlessly the same way
 	// (TextureCube.Handle(uint2(index, 0))) once registered.
 	uint32 addCubeTexture(VkImage image, VkFormat format, VkImageLayout layout, uint32 mipCount);
 	//
@@ -40,23 +40,20 @@ public:
 	// resize instead of this appended one dangling m_resources entry per resize (the old, now-freed
 	// image), which the next build() then tried to create an image view for -- crashing with
 	// "vkWriteResourceDescriptorsEXT(): ... Invalid VkImage Object" the moment two resizes happened
-	// before the app ever got a chance to use the first one (routine: see EnsureGBufferCapacity's own
-	// comment on ImGui's docking layout settling). @param index must be one addTexture() already
-	// returned.
+	// before the app ever got a chance to use the first one (routine while ImGui's docking layout
+	// settles). @param index must be one addTexture() already returned.
 	void updateTexture(uint32 index, VkImage image, VkFormat format, VkImageLayout layout, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, uint32 mipCount = 1);
 	// Same as updateTexture(), for a slot addStorageImage() returned.
 	void updateStorageImage(uint32 index, VkImage image, VkFormat format);
 	//
-	// Drops every previously-added resource (currently only ever textures -- addStorageImage()/
-	// addTLAS() have no callers yet) so the next build() starts from an empty set. Needed before
-	// re-adding textures whose old VkImages are about to be (or already were) destroyed -- e.g.
-	// reloading a scene discards and recreates every Texture -- since build() would otherwise
-	// create image views against freed images.
+	// Drops every previously-added resource so the next build() starts from an empty set. Needed
+	// before re-adding textures whose old VkImages are about to be (or already were) destroyed --
+	// e.g. reloading a scene discards and recreates every Texture -- since build() would otherwise
+	// create image views against freed images. (Nothing calls add*() yet -- Texture doesn't
+	// register itself.)
 	void resetResources() { m_resources.clear(); }
 	//
 	void build(VkDevice device, utils::ResourceAllocator& allocator, VkCommandBuffer cmd);
-	//
-	void bind(VkCommandBuffer cmd);
 
 private: // ===========================================
 	VkDeviceSize m_imageDescriptorSize = {};
@@ -76,8 +73,6 @@ private: // ===========================================
 		uint32 layerCount = 1;
 		uint32 mipCount = 1;
 		VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-		VkAccelerationStructureKHR tlas = VK_NULL_HANDLE;
 	};
 
 	std::vector<ResourceDesc> m_resources;
