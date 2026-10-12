@@ -61,16 +61,6 @@ struct Light
 // The shader accesses it through a buffer device address (buffer reference), not a descriptor set.
 struct SceneInfo
 {
-	uint64_t outputAddress;		 // float4, this frame's ray-traced output (write target)
-	uint64_t prevOutputAddress;	 // float4, previous frame's ray-traced output (read-only; double-buffered for temporal smoothing, see temporalFade)
-	// float4 (specular RGB, proxy hit distance), this frame's direct/NEE specular-lobe-only signal
-	// (write target) -- see ray.slang's hdrSpecular and g_outputBufferSpecular (App.cpp)
-	// for what does and doesn't feed this. Double-buffered/ping-ponged exactly like outputAddress/
-	// prevOutputAddress above (same reason: Reference Accumulation mode needs last frame's specular
-	// value too, to keep accumulating it the same way it already accumulates diffuse) -- NRD's own
-	// dispatch only ever touches the "current" slot, same as it does for the diffuse buffer.
-	uint64_t outputSpecularAddress;
-	uint64_t prevOutputSpecularAddress;
 	float2 resolution;         // Viewport resolution, todo: uint and 1/xy
 
 	float animValue;          // Animation value (sine wave)

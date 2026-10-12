@@ -93,10 +93,6 @@ void Test(inout ContextGather ui)
 {
 	SceneInfo * scene = (SceneInfo *)pushData.sceneInfoAddress;
 
-	// Note: don't read scene.outputAddress/prevOutputAddress here -- the C++ side no longer
-	// allocates that buffer (removed with the ray tracer), so both are 0 and any read faults
-	// the GPU (VK_ERROR_DEVICE_LOST).
-
 	s2h_setScale(ui, 2);
 
 	// s2h_printTxt() takes at most 6 characters per call
