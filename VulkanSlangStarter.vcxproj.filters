@@ -203,9 +203,6 @@
     <ClInclude Include="Renderer.h">
       <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Transform.h">
-      <Filter>Hidden</Filter>
-    </ClInclude>
     <ClInclude Include="Parse.h">
       <Filter>Hidden</Filter>
     </ClInclude>

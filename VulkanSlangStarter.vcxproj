@@ -230,7 +230,6 @@
     <ClInclude Include="shaders\shader_io.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Timer.h" />
-    <ClInclude Include="Transform.h" />
     <ClInclude Include="vulkanBase.h" />
   </ItemGroup>
   <ItemGroup>
