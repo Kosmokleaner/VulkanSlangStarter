@@ -1,7 +1,5 @@
 #pragma once
 
-class Scene;
-
 #include "vulkanBase.h"
 #include "Buffer.h"
 #include "DescriptorHeap.h"
@@ -18,7 +16,6 @@ struct VulkanContext
 	VkQueue queue;	// m_context.getGraphicsQueue().queue
 	VkCommandPool transientCmdPool;
 };
-
 
 class Renderer
 {

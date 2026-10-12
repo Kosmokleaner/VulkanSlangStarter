@@ -237,11 +237,13 @@
     </Library>
   </ItemGroup>
   <ItemGroup>
-    <None Include=".gitignore" />
     <None Include="CONTRIBUTING.md" />
     <None Include="readme.md" />
     <None Include="shaders\post.slang">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include=".gitignore">
+      <Filter>Hidden</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

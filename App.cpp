@@ -429,10 +429,6 @@ static bool CaptureRenderTargetToPNG(utils::RenderTarget& renderTarget, const st
 	return ok;
 }
 
-#define USE_SLANG 1
-
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
 #include <GLFW/glfw3native.h>
 
 //--- Geometry -------------------------------------------------------------------------------------------------------------
@@ -469,9 +465,7 @@ App::App(VkExtent2D size)
 	// https://stackoverflow.com/questions/7375003/how-to-convert-hicon-to-hbitmap-in-vc
 #if _WIN32
 	{
-		//      HICON hIcon = (HICON)LoadImage(GetModuleHandle(0), L"icon.ico", IMAGE_ICON, 0, 0, 0);
 		HICON hIcon = (HICON)LoadImage(GetModuleHandle(0), MAKEINTRESOURCE(IDI_SMALL), IMAGE_ICON, 0, 0, 0);
-		//        ASSERT(hIcon);
 
 		if (hIcon)
 		{

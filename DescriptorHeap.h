@@ -34,8 +34,6 @@ public:
 	//
 	uint32 addStorageImage(VkImage image, VkFormat format);
 	//
-	uint32 addTLAS(VkAccelerationStructureKHR tlas);
-	//
 	// Overwrites an existing slot in place instead of appending a new one -- for a resource that gets
 	// destroyed/recreated (e.g. on resize) whose heap index needs to stay the same *and* never leave a
 	// stale entry pointing at an already-destroyed VkImage behind: calling addTexture() again on every
