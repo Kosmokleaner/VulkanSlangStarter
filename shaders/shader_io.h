@@ -46,7 +46,8 @@ STATIC_CONST int LVLightmapUV = 4;
 struct SceneInfo
 {
 	float2 resolution;         // Viewport resolution, todo: uint and 1/xy
-	float2 dummy;
+	uint texId0;
+	uint texId1;
 
 	// 0:hide/1:draw HUD
 	uint infoHUD;

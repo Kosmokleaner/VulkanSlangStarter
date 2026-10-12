@@ -42,8 +42,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <filesystem>
 
-uint32 g_frameIndex = 0;
-
 Renderer g_renderer;
 
 Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain");
@@ -53,6 +51,9 @@ Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain");
 // ImGuizmo::SetRect() using the same rect the mouse-picking code already computes.
 ImVec2 g_viewportScreenPos(0, 0);
 ImVec2 g_viewportSize(0, 0);
+
+CTexHandle g_hndTex0;
+CTexHandle g_hndTex1;
 
 // See global.h's own declaration/comment (its ASSERT() redefinition is the actual reader) -- set
 // below in main(), right after AttachParentConsole().
@@ -192,15 +193,14 @@ void setupScene1()
 	// $(ProjectDir) (this project has no <LocalDebuggerWorkingDirectory> override, i.e. thed
 	// repo root), and running from the command line is expected to match (cd to the repo
 	// root first). Texture::loadFromFile already asserts clearly if a path doesn't resolve.
-	CTexHandle hndTex;
 	{
 		Texture tex0;
 		tex0.loadFromFile(vulkanContext, "resources/image1.jpg");
-		hndTex = g_TextureManager.push_back(tex0);
+		g_hndTex0 = g_TextureManager.push_back(tex0);
 
 		Texture tex1;
 		tex1.loadFromFile(vulkanContext, "resources/image2.jpg");
-		g_TextureManager.push_back(tex1);
+		g_hndTex1 = g_TextureManager.push_back(tex1);
 	}
 
 
@@ -1130,21 +1130,6 @@ void App::createFrameSubmission(uint32 numFrames)
 	}
 }
 
-bool SliderTexHandle(const char* label, CTexHandle& hnd)
-{
-	int count = (int)g_TextureManager.GetElementCount();
-
-	uint32 it = g_TextureManager.GetIteratorFromHandle(hnd);
-	char str[80];
-	sprintf_s(str, sizeof(str), "#%d.%d", (uint32)hnd.Index, (uint32)hnd.Seed);
-	bool ret = ImGui::SliderInt(label, (int*)&it, 0, count - 1, str);
-
-	if(ret)
-		hnd = g_TextureManager.GetHandleByIterator(it);
-
-	return ret;
-}
-
 void App::drawFrame(VkCommandBuffer cmd)
 {
 	// ImGui
@@ -1387,17 +1372,19 @@ void App::endDynamicRenderingToSwapchain(VkCommandBuffer cmd)
 	// Transition the swapchain image back to the present layout
 	utils::cmdTransitionSwapchainToPresentLayout(cmd, m_swapchain.getImage());
 }
+
 void App::updateSceneBuffer(VkCommandBuffer cmd) const
 {
 	// Updating the data for the frame
 	shaderio::SceneInfo sceneInfo{};
+
 	float time = static_cast<float>(ImGui::GetTime());
-	float sineValue = std::sin(time);    // Get the sine of the current time
-	float mappedValue = sineValue;
 
 	sceneInfo.resolution = float2(m_viewportSize.width, m_viewportSize.height);
 	sceneInfo.clearColor = float3(0, 1, 0);	// green
 
+//	sceneInfo.texId0 = g_TextureManager.GetElementPtr(g_hndTex0)->getHeapIndex();
+//	sceneInfo.texId1 = g_TextureManager.GetElementPtr(g_hndTex1)->getHeapIndex();
 	sceneInfo.infoHUD = g_InfoHUD;
 
 	// Add a barrier to make sure nothing was writing to it, before updating its content
@@ -1409,8 +1396,6 @@ void App::updateSceneBuffer(VkCommandBuffer cmd) const
 	// Add barrier to make sure the buffer is updated before the shaders use it
 	utils::cmdBufferMemoryBarrier(cmd, m_sceneInfoBuffer.buffer, VK_PIPELINE_STAGE_2_TRANSFER_BIT,
 		VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
-
-	g_frameIndex++;
 }
 
 
