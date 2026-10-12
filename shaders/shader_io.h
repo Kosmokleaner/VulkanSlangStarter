@@ -46,22 +46,13 @@ STATIC_CONST int LVLightmapUV = 4;
 struct SceneInfo
 {
 	float2 resolution;         // Viewport resolution, todo: uint and 1/xy
+	float2 dummy;
 
-	ROW_MAJOR float4x4 viewFromWorld; // aka view, worldToView
-	ROW_MAJOR float4x4 clipFromView; // aka projection, viewToClip
-	ROW_MAJOR float4x4 worldFromView; // aka invView, ViewToWorld
-	ROW_MAJOR float4x4 viewFromClip; // aka invProjection, clipToView
-	ROW_MAJOR float4x4 worldFromClip;
-
-	float3 wsCameraPos;
 	// 0:hide/1:draw HUD
 	uint infoHUD;
 
 	// in sRGB
 	float3 clearColor;
-	float zNear;
-
-	float zFar;
 	float fieldOfViewDeg;
 };
 

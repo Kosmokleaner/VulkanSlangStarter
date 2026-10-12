@@ -43,7 +43,6 @@
 #include "Reflection.h"
 #include "DeferredRelease.h"
 #include "App.h"
-#include "CameraComponent.h"
 #include "Transform.h"
 #include "imgui_stdlib.h"
 #include <glm/gtc/type_ptr.hpp>
@@ -263,18 +262,6 @@ void setupScene1()
 	// here directly -- the main loop's run() now drains them into g_deferredRelease every frame
 	// (see that call site's comment), the same frame-safe deferred destruction every other Buffer
 	// already gets, instead of each caller managing its own staging buffers' lifetime by hand.
-
-	// camera
-	{
-		CameraComponent camera;
-		Entity s;
-		s.hndCamera = g_CameraManager.push_back(camera);
-		s.transform.SetPos(float3(0, 2, 8));
-		g_scene.m_sceneObjects.push_back(s);
-	}
-
-
-	setCurrentCamera();
 }
 
 
@@ -732,82 +719,6 @@ void App::run()
 
 		glfwPollEvents();
 
-		{
-			extern CRelativeMouseInput g_MouseInput;
-			CRelativeMouseInput::MouseInputButtons Buttons = g_MouseInput.GetMouseButtons();
-
-			// right mouse button
-			if (Buttons & 2)
-			{
-				g_MouseInput.SetUserCapture("RightMouseButton");
-			}
-			else
-			{
-				g_MouseInput.ResetUserCapture("RightMouseButton");
-			}
-
-			CRelativeMouseInput::MouseInputData data = g_MouseInput.ClaimMouseInputData("RightMouseButton");
-
-			if (auto* p2 = g_scene.m_sceneObjects.GetElementPtr(g_currentCamera))
-			if (auto *p = g_CameraManager.GetElementPtr(p2->hndCamera))
-			{
-				//				const float rotateSpeed = 2 * InCamera.GetVerticalFov() / g_Renderer.GetHeight();
-				const float rotateSpeed = 1 * 0.002f;		// todo
-				const float movementSpeed = 50.0f / 10.0f;
-
-				if (data.IsValid() && (data.RelativeX != 0 || data.RelativeY != 0))
-				{
-					float fInvMouse = 1.0;
-					p2->transform.Rotate(rotateSpeed * data.RelativeX, -rotateSpeed * data.RelativeY * fInvMouse);
-					g_temporalAccumulator = 0;
-				}
-
-				float3 forward = p2->transform.GetForward();
-				float3 left = glm::normalize(glm::cross(forward, p2->transform.GetUp()));
-
-				float dt = (float)ImGui::GetIO().DeltaTime;
-				forward *= movementSpeed * dt;
-				left *= movementSpeed * dt;
-
-				float3 move(0, 0, 0);
-
-				// When GetAsyncKeyState('S') fires during a Print Screen press on your JLAB keyboard, you are dealing with a hardware/firmware shortcut shortcut bypass. [1] (https://www.bestbuy.com/site/questions/jlab-jbuds-wireless-keyboard-black/6521118/question/f0bb5529-bb1b-3c50-bca6-36911ce1d1a1)Because many JLAB keyboards lack a physical PrtScn key, JLAB hardcodes a macro into their firmware. When you trigger their custom screenshot shortcut, the keyboard digitally blasts the full native Windows shortcut: Windows Key + Shift + S. [1] (https://www.bestbuy.com/site/questions/jlab-jbuds-wireless-keyboard-black/6521118/question/f0bb5529-bb1b-3c50-bca6-36911ce1d1a1)
-				bool winPressed = (GetAsyncKeyState(VK_LWIN) & 0x8000) || (GetAsyncKeyState(VK_RWIN) & 0x8000);
-
-				if (glfwGetWindowAttrib(m_window, GLFW_FOCUSED) && !winPressed)
-				{
-					if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
-					{
-						left *= 3;
-						forward *= 3;
-					}
-
-					if (GetAsyncKeyState('A') & 0x8000)
-					{
-						move += left;
-						g_temporalAccumulator = 0;
-					}
-					else if (GetAsyncKeyState('D') & 0x8000)
-					{
-						move -= left;
-						g_temporalAccumulator = 0;
-					}
-
-					if (GetAsyncKeyState('W') & 0x8000)
-					{
-						move += forward;
-						g_temporalAccumulator = 0;
-					}
-					else if (GetAsyncKeyState('S') & 0x8000)
-					{
-						move -= forward;
-						g_temporalAccumulator = 0;
-					}
-				}
-				p2->transform.SetPos(p2->transform.GetPos() + move);
-			}
-		}
-
 		if (glfwGetWindowAttrib(m_window, GLFW_ICONIFIED) == GLFW_TRUE)
 		{
 			ImGui_ImplGlfw_Sleep(10);  // Do nothing when minimized
@@ -1149,7 +1060,6 @@ void App::init()
 	Log("\n");
 
 	g_scene.m_sceneObjects.InitOnce(4096);
-	g_CameraManager.InitOnce(4096);
 
 	extern CObjManager<CTexHandle, Texture> g_TextureManager;
 	g_TextureManager.InitOnce(4096);
@@ -1597,42 +1507,8 @@ void App::updateSceneBuffer(VkCommandBuffer cmd) const
 
 	sceneInfo.resolution = float2(m_viewportSize.width, m_viewportSize.height);
 	sceneInfo.clearColor = float3(0, 1, 0);	// green
-	
-	float zNear = 0.1f;
-	float zFar = 100000.0f;
 
-	// in degrees
-	float fieldOfView = 45.0f;
-	Transform transform;
-
-	if (auto* p2 = g_scene.m_sceneObjects.GetElementPtr(g_currentCamera))
-		if (auto* p = g_CameraManager.GetElementPtr(p2->hndCamera))
-		{
-			fieldOfView = p->fieldOfView;
-			transform = p2->transform;
-		}
-
-	sceneInfo.clipFromView = glm::perspectiveLH_ZO(glm::radians(fieldOfView), m_viewportSize.width / (float)m_viewportSize.height, zNear, zFar);	// LH
-	sceneInfo.fieldOfViewDeg = fieldOfView;
-
-	sceneInfo.worldFromView = transform.GetViewMatrix();
-	sceneInfo.viewFromWorld = glm::transpose(sceneInfo.worldFromView);
-	sceneInfo.viewFromClip = glm::inverse(sceneInfo.clipFromView);
-	// worldFromView actually holds the *view* matrix (world-to-view; see its assignment above --
-	// name is misleading but ray-gen's camera-ray reconstruction already depends on viewFromWorld
-	// being transpose(that value) exactly as-is, so it can't be repointed to a true inverse here).
-	// worldFromClip needs the real view-to-world matrix, so invert it separately, then transpose
-	// to match this buffer's other matrices (read via explicit row indexing / MatrixVectorMultiply,
-	// which needs the transpose to line up with GLM's column-major storage).
-	// TEMP DIAGNOSTIC: shader.rast.slang is temporarily reading this via MatrixVectorMultiply
-	// instead of raw mul(), to isolate whether this C++-side matrix is correct independent of the
-	// mul()/majorness mismatch. Revert together with the shader-side change once confirmed.
-	sceneInfo.worldFromClip = glm::transpose(glm::inverse(sceneInfo.worldFromView) * sceneInfo.viewFromClip);
-
-	sceneInfo.wsCameraPos = transform.GetPos();
 	sceneInfo.infoHUD = g_InfoHUD;
-	sceneInfo.zNear = zNear;
-	sceneInfo.zFar = zFar;
 
 	// Add a barrier to make sure nothing was writing to it, before updating its content
 	utils::cmdBufferMemoryBarrier(cmd, m_sceneInfoBuffer.buffer,

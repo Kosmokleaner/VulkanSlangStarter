@@ -152,7 +152,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CameraComponent.cpp" />
     <ClCompile Include="extern\imgui\imgui_stdlib.cpp" />
     <ClCompile Include="Platform.cpp" />
     <ClCompile Include="ASCIIFile.cpp" />
@@ -191,7 +190,6 @@
     <None Include="shaders\shader.rast.slang" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CameraComponent.h" />
     <ClInclude Include="extern\imgui\imgui_stdlib.h" />
     <ClInclude Include="Platform.h" />
     <ClInclude Include="ASCIIFile.h" />

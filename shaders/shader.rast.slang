@@ -11,7 +11,6 @@ struct VertexOutput
 {
     float4 position : SV_Position; // Clip space position (required)
     float2 uv : TEXCOORD0; // Interpolated texture coordinates
-	float3 normal: TEXCOORD1; // Interpolated world space normal, not normalized
 };
 
 struct PixelOutput
@@ -29,35 +28,8 @@ struct PixelOutput
 [[vk::push_constant]]
 ConstantBuffer<GraphicsPushData> pushData;
 
-// Descriptor heap: textures and samplers live in GPU heap buffers (VK_EXT_descriptor_heap).
-// We access them by heap index using Texture2D.Handle(uint2(index, 0)) and
-// SamplerState.Handle(uint2(index, 0)). This replaces the old [[vk::binding(...)]] Sampler2D array.
-
-// @return worldToView aka viewFromWorld 
-float4x4 GetViewMatrix()
-{
-	SceneInfo *scene = (SceneInfo *)pushData.sceneInfoAddress;
-
-	return scene.viewFromWorld; //  pos is at bottom of matrix
-}
-
-// @return viewToClip aka ClipFromView
-float4x4 GetPerspMatrix()
-{
-	SceneInfo * scene = (SceneInfo *)pushData.sceneInfoAddress;
-
-	return ComputePerspectiveMatrix(scene.fieldOfViewDeg * PI / 180.0f, scene.resolution.x / (float) scene.resolution.y, scene.zNear, scene.zFar);
-//	return transpose(scene.clipFromView);
-}
-
 //------------------------------------------------------------------------------
 
-float3 GetCameraPos()
-{
-	SceneInfo * scene = (SceneInfo *)pushData.sceneInfoAddress;
-	return scene.wsCameraPos;
-}
- 
 // [shader("vertex")] is Slang's way of marking the vertex shader entry point
 [shader("vertex")]
 VertexOutput vertexMain(const VertexInput input, uint vertexID : SV_VertexID)
@@ -72,33 +44,12 @@ VertexOutput vertexMain(const VertexInput input, uint vertexID : SV_VertexID)
 
     VertexOutput output;
     output.position = float4(pos, 1.0);
-//    output.color    = input.color;
-//	output.color = normalize(input.normal) * 0.5f + 0.5f;
 	output.uv = input.uv;
-	output.normal = mul(input.normal, transpose((float3x3)pushData.modelMatrix));
 
     // Transform vertex position to clip space
 	float4 p = output.position;
 
-	p = mul(pushData.modelMatrix, p);
-
-	p = mul(GetViewMatrix(), p);
-	p = mul(GetPerspMatrix(), p);
-
 	output.position = p;
-	
-//	p = mul(GetPerspMatrix(), p);
-	
-	//	first triangle fills screen, z=far
-	if(false)
-	{
-		if (currentVertexID == 0)
-			output.position = float4(-10, -10, 0.9, 1);
-		else if (currentVertexID == 1)
-			output.position = float4(10, -10, 0.9, 1);
-		else if (currentVertexID == 2)
-			output.position = float4(0, 20, 0.9, 1);
-	}
 	
 	// DirectX NDC y=1 is top, -1 is bottom
 	// OpenGL/Vulkan NDC y=-1 is top, 1 is bottom
@@ -117,42 +68,9 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
     // Access the scene info buffer via buffer device address (same buffer, updated once per frame)
     SceneInfo* scene = (SceneInfo*)pushData.sceneInfoAddress;
 
-    float2 fragPos = (input.position.xy / scene.resolution) * 2.0 - 1.0;
+    float2 fragPos = (input.position.xy / scene.resolution) * 2.0f - 1.0f;
 	
-	float4 triangleColor = 1.0f;
-
-	float3 Origin = GetCameraPos();
-
-	float4 clipPos = float4(fragPos, input.position.z, 1);
-
-	// World-space reconstruction, mirroring ray.slang's rayGenMain camera-ray unprojection (which is
-	// proven correct) instead of the C++-precomputed scene.worldFromClip: compute the inverse
-	// view-projection locally from the same GetPerspMatrix()/GetViewMatrix() this shader already
-	// uses for the forward transform in vertexMain, so there's only one matrix convention in play.
-	float3 surfacePos;
-	{
-		float4x4 worldToClip = MultiplyMatrices(GetPerspMatrix(), GetViewMatrix());
-		float4x4 INV_VIEW_PROJECTION = inverse(worldToClip);
-
-		// Undo vertexMain's NDC Y-flip before applying the inverse, same as rayGenMain does.
-		float2 screenPos = clipPos.xy;
-		screenPos.y = -screenPos.y;
-		float4 worldPosHom = mul(INV_VIEW_PROJECTION, float4(screenPos, clipPos.z, 1));
-		surfacePos = worldPosHom.xyz / worldPosHom.w;
-	}
-	float3 interpolatedNormal = normalize(input.normal);
-	
-	uint materialID = pushData.materialAndMeshID >> 16;
-
-	float3 V = normalize(Origin - surfacePos);
-
-	float3 hdr = float3(0,0,1); // blue
-
-	// works
-//	hdr = float3(input.position.xy / scene.resolution, 0);
-
-	// todo: tonemapper
-	float3 ldr = hdr;
+	float3 ldr = (0, 0, 1); // blue
 	
 	// m_renderTarget is VK_FORMAT_R8G8B8A8_UNORM (App.cpp) -- no hardware sRGB encode on
 	// write, so it has to happen here, same as post.slang's own final output write. Previously only
