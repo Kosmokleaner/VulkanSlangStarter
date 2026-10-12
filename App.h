@@ -161,12 +161,9 @@ private:
 	utils::FramePacer m_framePacer;
 
 	EVSyncMode m_vSyncMode = EVSyncMode::TearFree;
-//	EVSyncMode m_vSyncMode = EVSyncMode::VSync;
 
 	// The current image to display
 	int m_imageID = 0;
 	// Maximum textures allowed in the application
 	uint32 m_maxTextures = 10000;
-
-	friend void Reflection(CIniArchive& archive, WindowPersist& ref, App& app);
 };

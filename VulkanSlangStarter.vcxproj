@@ -179,7 +179,6 @@
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderCache.cpp" />
     <ClCompile Include="Timer.cpp" />
-    <ClCompile Include="WindowPersist.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
@@ -241,7 +240,6 @@
     <ClInclude Include="Timer.h" />
     <ClInclude Include="Transform.h" />
     <ClInclude Include="vulkanBase.h" />
-    <ClInclude Include="WindowPersist.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="extern\GLFW\glfw3.lib" />

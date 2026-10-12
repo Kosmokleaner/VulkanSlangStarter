@@ -38,7 +38,6 @@
 #include "Platform.h"
 #include "Texture.h"
 #include "Renderer.h"
-#include "WindowPersist.h"
 #include "IniArchive.h"
 #include "Reflection.h"
 #include "DeferredRelease.h"
@@ -47,8 +46,6 @@
 #include "imgui_stdlib.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <filesystem>
-
-WindowPersist g_windowPersist;
 
 CRelativeMouseInput g_MouseInput;
 uint32 g_temporalAccumulator = 0;
@@ -538,29 +535,6 @@ unsigned int RGBSwizzle(unsigned int c) {
 	return (c & 0xff00ff00) | ((c >> 16) & 0xff) | ((c & 0xff) << 16);
 }
 
-
-
-void Reflection(CIniArchive& archive, WindowPersist& ref, App& app)
-{
-	Reflection(archive, "Window_fullScreen", ref.fullscreen);
-	Reflection(archive, "Window_maximized", ref.maximized);
-	for (int i = 0; i < 4; ++i)
-	{
-		char str[256];
-		sprintf_s(str, sizeof(str), "Window_rect%d", i);
-		Reflection(archive, str, ref.data[i]);
-	}
-	Reflection(archive, "Window_maximized", ref.maximized);
-
-	//
-
-	Reflection(archive, "VSyncMode", (int&)app.m_vSyncMode);
-	Reflection(archive, "InfoHUD", g_InfoHUD);
-	// g_Camera's own Reflection() (see Reflection.cpp) covers FieldOfView along with position/rotation,
-	// encoded as a single string under one key so multiple cameras wouldn't collide.
-//	Reflection(archive, "Camera", g_Camera);
-}
-
 //--- App ------------------------------------------------------------------------------------------------------------
 // See App.h for the class definition.
 
@@ -575,7 +549,6 @@ App::App(VkExtent2D size)
 
 	CIniArchive iniArchive;
 	iniArchive.Load("Settings.ini");
-	Reflection(iniArchive, g_windowPersist, *this);
 
 	// Vulkan Loader
 	VK_CHECK(volkInitialize());
@@ -583,17 +556,7 @@ App::App(VkExtent2D size)
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 	const char* windowTitle = "VulkanSlangStarter Window";
 
-	if (!g_windowPersist.IsValid())
-	{
-		g_windowPersist = {};
-		g_windowPersist.data[0] = g_windowPersist.data[1] = 100;
-		g_windowPersist.data[2] = 1280;
-		g_windowPersist.data[3] = 768;
-	}
-
 	m_window = glfwCreateWindow(m_windowSize.width, m_windowSize.height, windowTitle, nullptr, nullptr);
-
-	g_windowPersist.ApplyState(glfwGetWin32Window(m_window));
 
 	// https://stackoverflow.com/questions/7375003/how-to-convert-hicon-to-hbitmap-in-vc
 #if _WIN32
@@ -661,11 +624,8 @@ App::~App()
 {
 	destroy();
 
-	// doing it later will not work, after this message the hwnd is invalid
-	g_windowPersist.SaveState(glfwGetWin32Window(m_window));
 	{
 		CIniArchive iniArchive;
-		Reflection(iniArchive, g_windowPersist, *this);
 		iniArchive.Save("Settings.ini");
 	}
 

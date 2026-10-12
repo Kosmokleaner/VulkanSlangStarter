@@ -76,9 +76,6 @@
     <ClCompile Include="Renderer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="WindowPersist.cpp">
-      <Filter>Hidden</Filter>
-    </ClCompile>
     <ClCompile Include="Parse.cpp">
       <Filter>Hidden</Filter>
     </ClCompile>
@@ -223,9 +220,6 @@
     </ClInclude>
     <ClInclude Include="Renderer.h">
       <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="WindowPersist.h">
-      <Filter>Hidden</Filter>
     </ClInclude>
     <ClInclude Include="Transform.h">
       <Filter>Hidden</Filter>
