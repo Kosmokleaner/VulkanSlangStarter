@@ -34,7 +34,6 @@
 #include "Shader.h"
 #include "RelativeMouseInput.h"
 #include "EventManager.h"
-#include "Scene.h"
 #include "Platform.h"
 #include "Texture.h"
 #include "Renderer.h"
@@ -48,7 +47,6 @@
 #include <filesystem>
 
 CRelativeMouseInput g_MouseInput;
-uint32 g_temporalAccumulator = 0;
 uint32 g_frameIndex = 0;
 
 Renderer g_renderer;
@@ -186,46 +184,11 @@ static void LogDeviceFaultInfo(VkDevice device)
 		LOGE("  vendor info: %s code=%lld data=%lld", v.description, (long long)v.vendorFaultCode, (long long)v.vendorFaultData);
 }
 
-void setCurrentCamera()
-{
-	g_currentCamera = CEntityHandle();
-	for (uint32 i = 0, count = g_scene.m_sceneObjects.GetElementCount(); i < count; ++i)
-	{
-		if (g_scene.m_sceneObjects.GetElementByIterator(i).hndCamera.IsValid())
-		{
-			g_currentCamera = g_scene.m_sceneObjects.GetHandleByIterator(i);
-			break;
-		}
-	}
-}
-
-// A brand new scene (setup #1/#2/load) shares nothing with whatever TAA/ReSTIR GI history buffer
-// still holds from the PREVIOUS scene -- resize is the only other place this gets invalidated
-// (onViewportSizeChange), so without this, switching scenes left taa_resolve.slang blending fresh
-// frames against a stale previous scene's image at g_taa.historyWeight (0.9 by default), which
-// stays visually dominant for many frames (confirmed live as setup #2's magenta BSP light markers
-// bleeding into setup #1 as an all-over magenta tint/"discolored material" until it slowly faded
-// out), and ReSTIR GI's own reservoir similarly blending stale, unrelated-scene radiance into fresh
-// pixels. Originally only triggered from drawFrame()'s "resetTemporal" UI-button bookkeeping, which
-// only a human clicking Setup#1/#2/Load ever went through -- calling setupScene1()/setupScene2()/
-// loadScene() directly (as tests::RunSelfTest's scripted --selftest mode does) skipped it entirely,
-// confirmed live as --selftest's own captured screenshots failing to match their own just-created
-// gold images purely from this leftover history, not any real rendering difference. Called from
-// those three functions directly now, not just drawFrame()'s UI layer, so ANY caller gets a clean
-// scene by construction instead of needing to remember this side effect itself.
-static void ResetTemporalHistory()
-{
-	g_temporalAccumulator = 0;
-}
-
 // Populates the scene with the same hand-authored content init() used to load unconditionally
 // behind LOAD_BSP_ON_START/LOAD_GLTF_ON_START -- now a runtime action (the "setup #1" button)
 // instead of a compile-time choice, so it can run after init() has already built an empty scene.
 void setupScene1()
 {
-	ResetTemporalHistory();
-	g_scene.m_sceneObjects.Clear();
-	
 	VkCommandBuffer cmd = utils::beginSingleTimeCommands(g_renderer.m_context.getDevice(), g_renderer.m_transientCmdPool);
 	VulkanContext vulkanContext(g_renderer.m_context.getDevice(), g_renderer.m_context.getPhysicalDevice(), g_renderer.m_allocator, cmd, g_renderer.m_context.getGraphicsQueue().queue, g_renderer.m_transientCmdPool);
 
@@ -764,8 +727,6 @@ void App::run()
 		if(bReloadShaders)
 		{
 			g_renderer.reloadShaders();
-
-			g_temporalAccumulator = 0;
 		}
 
 		// Verify if the viewport has a new size and resize the RenderTarget accordingly.
@@ -1019,8 +980,6 @@ void App::init()
 
 	Log("\n");
 
-	g_scene.m_sceneObjects.InitOnce(4096);
-
 	extern CObjManager<CTexHandle, Texture> g_TextureManager;
 	g_TextureManager.InitOnce(4096);
 
@@ -1237,8 +1196,6 @@ void App::drawFrame(VkCommandBuffer cmd)
 	}
 	ImGui::End();
 
-	bool resetTemporal = false;
-
 
 	if (ImGui::Begin("Settings"))
 	{
@@ -1287,18 +1244,10 @@ void App::drawFrame(VkCommandBuffer cmd)
 
 		if (ImGui::Button("setup #1"))
 		{
-			resetTemporal |= true;
 			setupScene1();
 		}
 	}
 	ImGui::End();
-
-	// setupScene1()/setupScene2()/loadScene() now call this themselves (see ResetTemporalHistory's
-	// own comment) -- this covers every OTHER thing that sets resetTemporal (settings sliders,
-	// material/texture edits, ...), which still need the same reset but don't go through one of
-	// those three functions.
-	if (resetTemporal)
-		ResetTemporalHistory();
 
 	ImGui::Render();  // This is creating the data to draw the UI (not on GPU yet)
 
@@ -1406,8 +1355,6 @@ void App::endFrame(VkCommandBuffer cmd)
 
 void App::onViewportSizeChange(VkExtent2D size)
 {
-	g_temporalAccumulator = 0;
-
 	m_viewportSize = size;
 	// Recreate the RenderTarget to the size of the viewport.
 	// Full device wait, not just this queue: we're about to free g_outputBuffer below, and a
@@ -1601,13 +1548,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 		// Bind shader objects: vertex stage (shared) + the no-texture fragment stage.
 	//    utils::cmdBindGraphicsShaders(cmd, m_vertShader, m_fragShaderNoTexture);
 		utils::cmdBindGraphicsShaders(cmd, g_gfx.m_shader[0], g_gfx.m_shader[1]);
-
-//		for (auto it = g_scene.m_sceneObjects.begin(), end = g_scene.m_sceneObjects.end(); it != end; ++it)
-		for(uint32 i = 0, count = g_scene.m_sceneObjects.size(); i < count; ++i)
-		{
-			const Entity& ref = g_scene.m_sceneObjects.GetElementByIterator(i);
-//			const Entity& ref = *it;
-		}
 	}
 
 	vkCmdPushDataEXT(cmd, &pushDataInfo);
@@ -1717,17 +1657,7 @@ void App::createDescriptorHeap(VkCommandBuffer cmd)
 		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
 		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-		// Negative bias shifts every implicit-LOD Sample() call (shader.rast.slang's albedo/
-		// metallic-roughness/lightmap lookups -- the only ones using automatic screen-space-
-		// derivative LOD, not an explicit SampleLevel/Load) toward sharper, lower mip levels --
-		// standard practice paired with TAA (taa_resolve.slang), which softens fine detail over
-		// several accumulated jittered samples; the extra aliasing/shimmer this reintroduces at full
-		// sharpness is exactly what TAA's neighborhood-clamped temporal blend is there to hide.
-		// ComputeTemporalJitter's Halton(2,3) sequence effectively supersamples each pixel across
-		// ~16 distinct sub-pixel positions once accumulated -- a 4x4 grid equivalent -- so the mip
-		// bias should be log2(1/4) = -2 (two full levels sharper), not -1 (which only accounts for a
-		// 2x2/4-sample equivalent).
-		.mipLodBias = -2.0f,
+		.mipLodBias = 0.0f,
 		.maxLod = VK_LOD_CLAMP_NONE,
 	};
 

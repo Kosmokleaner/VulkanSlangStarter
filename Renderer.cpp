@@ -1,7 +1,6 @@
 #include "global.h"	// include first in any cpp
 #include "Renderer.h"
 #include "Buffer.h"
-#include "Scene.h"
 #include "ShaderCache.h"
 #include "Texture.h"
 

@@ -77,15 +77,6 @@ static_assert(sizeof(TypedHandle) == sizeof(CObjHandle) + sizeof(uint32));
 
 class CTexHandle : public CObjHandle {};
 class CMatHandle : public CObjHandle {};
-class CRenderCompHandle : public CObjHandle {};
-
-class CCameraHandle : public CObjHandle {};
-class CLightHandle : public CObjHandle {};
-
-// named key
-class CKeyHandle : public CObjHandle {};
-class CArenaHandle : public CObjHandle {};
-
 class CEntityHandle : public CObjHandle {};
 
 // object type

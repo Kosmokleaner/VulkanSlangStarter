@@ -91,9 +91,6 @@
     <ClCompile Include="Reflection.cpp">
       <Filter>Hidden</Filter>
     </ClCompile>
-    <ClCompile Include="Scene.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="global.h" />
@@ -241,9 +238,6 @@
     </ClInclude>
     <ClInclude Include="extern\imgui\imconfig.h">
       <Filter>Hidden</Filter>
-    </ClInclude>
-    <ClInclude Include="Scene.h">
-      <Filter>Renderer</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

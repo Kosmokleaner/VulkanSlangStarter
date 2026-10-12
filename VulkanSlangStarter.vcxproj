@@ -175,7 +175,6 @@
     <ClCompile Include="Reflection.cpp" />
     <ClCompile Include="RelativeMouseInput.cpp" />
     <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderCache.cpp" />
     <ClCompile Include="Timer.cpp" />
@@ -233,7 +232,6 @@
     <ClInclude Include="Reflection.h" />
     <ClInclude Include="RelativeMouseInput.h" />
     <ClInclude Include="Renderer.h" />
-    <ClInclude Include="Scene.h" />
     <ClInclude Include="ShaderCache.h" />
     <ClInclude Include="shaders\shader_io.h" />
     <ClInclude Include="Shader.h" />
