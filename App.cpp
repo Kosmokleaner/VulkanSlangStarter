@@ -48,7 +48,6 @@ Renderer g_renderer;
 
 CEntityHandle g_currentCamera;
 
-Shader g_gfx("shaders/shader.rast.slang", "vertexMain", "fragmentMain");
 Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain");
 
 // Screen-space rect of the "Viewport" window's content region, captured once per frame (see the
@@ -1521,20 +1520,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	// each draw. We set everything once here since none of it changes between
 	// the two draws below.
 	setGraphicsDynamicState(cmd, viewport, scissor);
-
-	bool bGfx = g_gfx.m_shader[0] && g_gfx.m_shader[1];
-
-	if(!bGfx)
-		g_UIErrors.push_back("g_Gfx failed to compile");
-
-	if(bGfx)
-	{
-		ASSERT(g_gfx.m_shader[0]);
-		ASSERT(g_gfx.m_shader[1]);
-		// Bind shader objects: vertex stage (shared) + the no-texture fragment stage.
-	//    utils::cmdBindGraphicsShaders(cmd, m_vertShader, m_fragShaderNoTexture);
-		utils::cmdBindGraphicsShaders(cmd, g_gfx.m_shader[0], g_gfx.m_shader[1]);
-	}
 
 	vkCmdPushDataEXT(cmd, &pushDataInfo);
 

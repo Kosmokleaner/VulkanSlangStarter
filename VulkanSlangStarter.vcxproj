@@ -182,7 +182,6 @@
     <None Include="readme.md" />
     <None Include="shaders\mathlib.slang" />
     <None Include="shaders\post.slang" />
-    <None Include="shaders\shader.rast.slang" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="extern\imgui\imgui_stdlib.h" />
