@@ -41,32 +41,11 @@ STATIC_CONST int LVLightmapUV = 4;
 #define ROW_MAJOR row_major
 #endif
 
-// One point light; see g_lights (App.cpp), rebuilt on the CPU every frame: [0] is
-// always the single global light (g_lightPos/g_lightColor/g_lightIntensity), followed by every
-// point light the loaded BSP level's "light" entities parsed into (C3DBSPLevel::m_Lights).
-struct Light
-{
-	float3 position;
-	// intensity-scaled but NOT distance-attenuated -- the value at the light's own position; see
-	// EvalLightFalloff (mathlib.slang), applied per-shaded-point using distance and radius below.
-	float3 color;
-	// distance at which this light's contribution reaches 0 (see EvalLightFalloff)
-	float radius;
-	// Physical size of the light source, for soft shadows (ray.slang jitters the shadow ray's
-	// target within this radius) -- NOT the same as radius above, which is a falloff distance.
-	float sourceRadius;
-};
-
 // Scene information, stored in a GPU buffer and updated once per frame via vkCmdUpdateBuffer.
 // The shader accesses it through a buffer device address (buffer reference), not a descriptor set.
 struct SceneInfo
 {
 	float2 resolution;         // Viewport resolution, todo: uint and 1/xy
-
-	float animValue;          // Animation value (sine wave)
-	int numData;            // Number of points in the data buffer #points
-	int texId;              // Which texture to sample from the descriptor heap
-	uint visualizeMode; //
 
 	ROW_MAJOR float4x4 viewFromWorld; // aka view, worldToView
 	ROW_MAJOR float4x4 clipFromView; // aka projection, viewToClip

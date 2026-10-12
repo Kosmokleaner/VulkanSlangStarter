@@ -1716,11 +1716,7 @@ void App::updateSceneBuffer(VkCommandBuffer cmd) const
 	float sineValue = std::sin(time);    // Get the sine of the current time
 	float mappedValue = sineValue;
 
-	sceneInfo.animValue = mappedValue;
 	sceneInfo.resolution = float2(m_viewportSize.width, m_viewportSize.height);
-	sceneInfo.numData = 0; // todo remove
-	sceneInfo.texId = m_imageID;
-	sceneInfo.visualizeMode = 0;
 	sceneInfo.clearColor = float3(0, 1, 0);	// green
 	
 	float zNear = 0.1f;
