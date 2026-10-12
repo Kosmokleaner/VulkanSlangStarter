@@ -18,45 +18,6 @@ STATIC_CONST int LVNormal= 1;
 STATIC_CONST int LVTangent = 2;
 STATIC_CONST int LVTexCoord = 3;
 STATIC_CONST int LVLightmapUV = 4;
-//STATIC_CONST int LVColor    = 4;
-
-// Ray tracing's traditional (non-heap) texture array size -- see g_textures in ray.slang and
-// Renderer::m_rtTextureViews / Shader::createRay's binding 4 for why ray tracing can't just use
-// the raster path's descriptor heap. A texture ID beyond this cap gets clamped to the last valid
-// slot (ray.slang: min(resolveTextureId(...), kMaxRayTracingTextures - 1u)) instead of rejected --
-// confirmed live as an entire BSP level (setup #2, ospdm2.bsp) rendering every surface with
-// whatever ONE texture happens to occupy that last slot, once its real per-surface texture/lightmap
-// count (typically 100+ for a Quake 3 map -- far more than the original budget of 32, itself
-// already reduced to effectively 25 by the 7 non-material heap entries below) ran past it.
-//
-// 7 non-material entries always precede real scene textures in the SAME bindless heap
-// Texture::uploadPixels() draws its index from: g_gbufferMotionVector, m_renderTarget's
-// color/depth, and the two TAA history buffers (storage + sampled, see
-// EnsureTaaHistoryCapacity/onViewportSizeChange, App.cpp) -- registered once, very
-// early (App::init()/the first resize), before any real scene texture ever loads. 256
-// leaves generous headroom above that for real per-scene textures on top; bump further (and adjust
-// this count) if a future scene's texture budget still doesn't fit.
-STATIC_CONST uint kMaxRayTracingTextures = 256;
-// MaterialData::textureId sentinel meaning "this material has no per-material texture" -- falls
-// back to whatever the caller's other texture-selection mechanism provides (e.g. SceneInfo::texId's
-// debug toggle in shader.rast.slang/ray.slang).
-STATIC_CONST uint kInvalidTextureId = 0xFFFFFFFFu;
-// Internal sentinel used only while building Mesh::m_primitiveMaterials (see
-// Mesh::buildPrimitiveMaterials) to catch a triangle no submesh covers -- never valid in the
-// finished buffer ray.slang's rayClosestHitMain reads (every triangle always has a real material).
-STATIC_CONST uint kInvalidMaterialIndex = 0xFFFFFFFFu;
-// Max entries g_lights (App.cpp) can hold: the single global light plus every point
-// light the loaded BSP level's "light" entities parsed into (C3DBSPLevel::m_Lights).
-STATIC_CONST uint kMaxLights = 256;
-
-// Offset (in float4 units, past the resolution.x*resolution.y pixel buffer) within
-// scene.outputAddress's "extra data" trailing region (see EnsureOutputBufferCapacity,
-// App.cpp) where interaction.slang's rayGenMain stores its single mouse-pick ray's
-// result -- read by post.slang's fragmentMain the same frame to print it via s2h_printInt().
-// Distinct from the 0..10 range laser.slang/ray.slang's TraceRay2 use for the laser's hit-point
-// list, which lives in scene.prevOutputAddress's extra region instead (a different buffer within
-// the same frame, so there's no actual overlap either way).
-STATIC_CONST uint kInteractionResultOffset = 16;
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER) || defined(__GNUC__) || defined(__clang__)
 #define _CPP

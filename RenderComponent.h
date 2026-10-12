@@ -98,12 +98,6 @@ public:
 	// tracing dispatch can reach it.
 	Buffer m_primitiveMaterials;
 
-	// Builds m_primitiveMaterials from m_subMeshes: every triangle in [0, triangleCount) must be
-	// covered by exactly one submesh with a valid material -- ray tracing's per-triangle material
-	// lookup is not optional (see rayClosestHitMain, ray.slang). Call once m_subMeshes is fully
-	// populated and the index buffer exists (i.e. after create()/initRaw()).
-	void buildPrimitiveMaterials(VulkanContext& vulkanContext, uint32 triangleCount);
-
 //private:
 //	void create(VulkanContext& vulkanContext, std::vector<uint32>& indices, std::vector<shaderio::Vertex>& vertices);
 	// input is m_sourceIndices and m_sourceVertices

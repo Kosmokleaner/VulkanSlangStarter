@@ -144,18 +144,6 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	
 	uint materialID = pushData.materialAndMeshID >> 16;
 
-/*	
-	// Texture2D.Handle(uint2(index, 0)) creates a handle from the resource heap at the given index.
-	// SamplerState.Handle(uint2(0, 0)) gets the linear sampler at index 0 in the sampler heap.
-	// This is the Slang equivalent of GLSL's layout(descriptor_heap) access.
-	{
-		// this is inherently bindless
-		uint texId = resolveTextureId(materialBuffer.textureId, scene.texId);
-		Texture2D    tex  = Texture2D.Handle(uint2(texId, 0));
-		SamplerState samp = SamplerState.Handle(uint2(0, 0));
-		triangleColor = tex.Sample(samp, input.uv);
-	}
-*/
 	float3 V = normalize(Origin - surfacePos);
 
 	float3 hdr = float3(0,0,1); // blue

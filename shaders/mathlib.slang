@@ -12,16 +12,6 @@ float Luminance(float3 c)
 	return dot(c, float3(0.2126f, 0.7152f, 0.0722f));
 }
 
-// Which descriptor-heap/texture-array index to sample: the material's own glTF texture if it has
-// one, otherwise the debug "Image 1"/"Image 2" toggle (SceneInfo::texId) both shaders already
-// exposed before per-material textures existed. Used by both shader.rast.slang (unbounded
-// descriptor heap) and ray.slang (which additionally clamps the result to its fixed-size
-// g_textures[] array, see kMaxRayTracingTextures).
-uint resolveTextureId(uint materialTextureId, int fallbackSceneTexId)
-{
-	return (materialTextureId != kInvalidTextureId) ? materialTextureId : uint(fallbackSceneTexId);
-}
-
 // The baked IBL cubemaps (IBLEnvironment.h) came from an old CryEngine-era DirectX codebase
 // (D:\oldCode\Hive\MasterCD\Shaders\SF_Base.fx's Phong(), which samples texCUBE with the raw
 // world-space reflection/normal vector -- no adjustment applied there), which used that engine's

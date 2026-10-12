@@ -51,36 +51,6 @@ void RenderComponent::createFromSource(VulkanContext& vulkanContext)
 	m_vertices.initRaw(vulkanContext.allocator, vulkanContext.cmd, m_sourceVertices.data(), m_sourceVertices.size(), sizeof(*m_sourceVertices.data()), Buffer::eBT_VertexBuffer);
 }
 
-void RenderComponent::buildPrimitiveMaterials(VulkanContext& vulkanContext, uint32 triangleCount)
-{
-	if (triangleCount == 0)
-		return;
-
-	std::vector<uint32> primitiveMaterials(triangleCount, shaderio::kInvalidMaterialIndex);
-
-	for (const SubMesh& sub : m_subMeshes)
-	{
-		ASSERT(sub.hndMaterial.IsValid());  // never optional -- see rayClosestHitMain, ray.slang
-		// rayClosestHitMain indexes g_materialBuffer (rebuilt every frame from
-		// g_MaterialManager.GetElementByIterator(), see App::dispatchRayTracing) directly
-		// by this raw Index, not through GetElementPtr() -- an out-of-range value here is a GPU
-		// out-of-bounds read (silent corruption or VK_ERROR_DEVICE_LOST) instead of a clean assert.
-		ASSERT(sub.hndMaterial.Index < g_MaterialManager.GetElementCount());
-		const uint32 triStart = sub.indexStart / 3;
-		const uint32 triCount = sub.indexCount / 3;
-		for (uint32 t = 0; t < triCount; ++t)
-			primitiveMaterials[triStart + t] = sub.hndMaterial.Index;
-	}
-
-	// Every triangle must be covered by some submesh -- a leftover kInvalidMaterialIndex here means
-	// m_subMeshes has a gap, which would read out of bounds of the material buffer at trace time.
-	for (uint32 matIndex : primitiveMaterials)
-		ASSERT(matIndex != shaderio::kInvalidMaterialIndex);
-
-	m_primitiveMaterials.initRaw(vulkanContext.allocator, vulkanContext.cmd, primitiveMaterials.data(),
-		primitiveMaterials.size(), sizeof(uint32), Buffer::eBT_ShaderBindingTable);
-}
-
 static CMatHandle getFallbackMaterial()
 {
 	Material m;
@@ -100,8 +70,6 @@ void RenderComponent::rebuildSingleSubMesh(VulkanContext& vulkanContext)
 	// corrupt/hand-edited scene.aa), not on every reload.
 	sub.hndMaterial = m_proceduralMaterial.IsValid() ? m_proceduralMaterial : getFallbackMaterial();
 	m_subMeshes.push_back(sub);
-
-	buildPrimitiveMaterials(vulkanContext, sub.indexCount / 3);
 }
 
 void RenderComponent::createPlane(VulkanContext& vulkanContext, float halfSize, CMatHandle material)

@@ -60,13 +60,6 @@ public:
 
 	DescriptorHeap m_descriptorHeap;
 
-	// Traditional (non-heap) binding for the ray tracing closest-hit shader's texture lookup --
-	// see Shader::updateRayDescriptorSet's comment for why the heap can't be used there. Index i
-	// here is the same index Texture::getHeapIndex() returns for the raster descriptor heap
-	// (both are assigned together in Texture::uploadPixels), so MaterialData::textureId indexes
-	// either array correctly.
-	VkImageView m_rtTextureViews[shaderio::kMaxRayTracingTextures]{};
-
 	void init(VkPhysicalDevice physicalDevice, VkCommandBuffer cmd);
 
 	// @param device must not be 0

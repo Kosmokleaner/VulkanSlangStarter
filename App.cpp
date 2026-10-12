@@ -71,31 +71,9 @@ Shader g_s2h_3d("shaders/s2h_3d.slang", "vertexMain", "fragmentMain");
 ImVec2 g_viewportScreenPos(0, 0);
 ImVec2 g_viewportSize(0, 0);
 
-// GPU->CPU readback of interaction.slang's picked-object index (see kInteractionResultOffset,
-// shader_io.h): two uint32s (index, isMaterial -- interaction.slang's result[0].w and result[1].x,
-// contiguous in the source buffer so one copy grabs both) per frame-in-flight
-// (Renderer::kMaxFramesInFlight). App::dispatchRayTracing() copies into slot
-// m_swapchain.getFrameResourceIndex()'s pair every frame; App::GetPickResult() reads that
-// same pair back ~kMaxFramesInFlight frames later, right after prepareFrameResources()'s existing
-// timeline-semaphore wait has already proven that slot's GPU work (including this copy) completed
-// -- so the read never stalls the GPU waiting on a copy that hasn't finished, at the cost of that
-// same couple-frame-old lag. Host-visible and persistently mapped: read directly, no per-frame
-// map/unmap. Raw array -- GetPickResult() is the only intended reader, everything else should go
-// through it instead of indexing this (or knowing about frame-in-flight slots) directly.
-utils::Buffer g_ReadbackBuffer;
-uint32* g_ReadbackMapped = nullptr;
-
 // See global.h's own declaration/comment (its ASSERT() redefinition is the actual reader) -- set
 // below in main(), right after AttachParentConsole().
 bool g_suppressAssertDialogs = false;
-
-// Flat (0,0,1) tangent-space normal -- "no bump" -- engine texture (isEngineTexture=true, like
-// ReplaceMe/Renderer.cpp; not sRGB, see Texture.h's m_isSRGB comment: this is direction data, not
-// color), created once in init(). Every material's own MaterialData::normalMapTextureId is resolved
-// to this texture's heap index whenever Material::m_hndNormalMap is unset (see the MaterialData
-// fill loop below), so ray.slang's normal-map sampling never needs a branch for "does this material
-// even have one" -- it unconditionally samples a normal map, and an unset one just samples this.
-CTexHandle g_hndDefaultNormalMap;
 
 // [mesh->getHandle().index] = IB+VB
 Buffer g_meshBuffer(EF_Type_Unknown);
@@ -236,42 +214,6 @@ void setCurrentCamera()
 	}
 }
 
-// Loads g_hndDefaultNormalMap once, lazily, the first time any setup path needs it -- same
-// "load once, guarded by isValid()" idiom as g_ibl.load()'s own call sites (setupScene1(),
-// setupScene2(), loadScene()), for the same reason: App::init() itself doesn't build a
-// scene anymore (see setupScene1()'s own comment just below), and this is genuinely needed by
-// every one of those paths (every material's own MaterialData::normalMapTextureId falls back to
-// this texture's heap index -- see its own fill site in recordGraphicsCommands()), not just one.
-void EnsureDefaultNormalMap(VulkanContext& vulkanContext)
-{
-	// isLoaded() (not just GetElementPtr() succeeding) is the right check: loadScene()'s
-	// resetResources()/deinit() sweep destroys this texture's image like every other texture's,
-	// but being an engine texture it's never removed from g_TextureManager -- so the manager slot
-	// survives a reload with a live handle pointing at a Texture whose deinit() already reset it
-	// back to an unloaded state (see Texture::deinit()/isLoaded()).
-	Texture* existing = g_TextureManager.GetElementPtr(g_hndDefaultNormalMap);
-	if (existing && existing->isLoaded())
-		return;
-
-	// See g_hndDefaultNormalMap's own comment -- flat (0,0,1) tangent-space normal, encoded the
-	// standard (n*0.5+0.5) way: byte 128 = 0.5019.. ~ 0.0, byte 255 = 1.0. 1x1 is enough (it's a
-	// constant, not real per-pixel data -- no mip chain beyond its own single level either).
-	const uint32 kFlatNormal = 0xFFFF8080u; // little-endian RGBA8: R=80 G=80 B=FF A=FF
-	Texture tex0;
-	tex0.m_isSRGB = false; // direction data, not color -- see Texture.h's m_isSRGB comment
-	tex0.loadFromMemory(vulkanContext, &kFlatNormal, 1, 1, "Default Normal Map (engine)");
-	tex0.isEngineTexture = true;
-
-	// Reuse the existing manager slot/handle if one survived a previous load -- pushing a new
-	// element instead would leak that old (unloaded but never-removed) slot forever and leave
-	// every already-resolved MaterialData::normalMapTextureId referencing this handle's original
-	// heap index stale anyway.
-	if (existing)
-		*existing = tex0;
-	else
-		g_hndDefaultNormalMap = g_TextureManager.push_back(tex0);
-}
-
 // A brand new scene (setup #1/#2/load) shares nothing with whatever TAA/ReSTIR GI history buffer
 // still holds from the PREVIOUS scene -- resize is the only other place this gets invalidated
 // (onViewportSizeChange), so without this, switching scenes left taa_resolve.slang blending fresh
@@ -343,8 +285,6 @@ void setupScene1()
 		tex1.loadFromFile(vulkanContext, "resources/image2.jpg");
 		g_TextureManager.push_back(tex1);
 	}
-
-	EnsureDefaultNormalMap(vulkanContext);
 
 	// emplace_back(), not push_back(MeshComponent(...)) -- see CObjManager::emplace_back's comment.
 	g_plane = g_MeshManager.emplace_back("plane");
@@ -1323,31 +1263,6 @@ void App::init()
 		| VK_BUFFER_USAGE_2_TRANSFER_DST_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	DBG_VK_NAME(m_sceneInfoBuffer.buffer);
-
-	// GPU->CPU selection readback -- see g_selectionReadback's own comment. HOST_ACCESS_RANDOM_BIT
-	// (this codebase's "Readback" recipe, see ResourceAllocator::createBuffer's comment) +
-	// MAPPED_BIT gives a persistently-mapped host-visible pointer, read directly with no per-frame
-	// map/unmap.
-	g_ReadbackBuffer = g_renderer.m_allocator.createBuffer(
-		Renderer::kMaxFramesInFlight * 2 * sizeof(uint32),
-		VK_BUFFER_USAGE_2_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_AUTO,
-		VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT);
-	DBG_VK_NAME(g_ReadbackBuffer.buffer);
-	{
-		VmaAllocationInfo allocInfo{};
-		vmaGetAllocationInfo(g_renderer.m_allocator, g_ReadbackBuffer.allocation, &allocInfo);
-		g_ReadbackMapped = (uint32*)allocInfo.pMappedData;
-
-		// index=-1 (asfloat/asint bit pattern), isMaterial=0 in every slot -- "nothing picked yet",
-		// matching interaction.slang's own miss/no-mouse sentinel -- so GetPickResult()'s first call
-		// has a defined value to compare against instead of whatever this memory happened to contain.
-		for (uint32 i = 0; i < Renderer::kMaxFramesInFlight; ++i)
-		{
-			int32 invalid = -1;
-			memcpy(&g_ReadbackMapped[i * 2 + 0], &invalid, sizeof(invalid));
-			g_ReadbackMapped[i * 2 + 1] = 0;
-		}
-	}
 }
 
 void App::destroy()
@@ -1413,7 +1328,6 @@ void App::destroy()
 	}
 
 	g_renderer.m_allocator.destroyBuffer(m_sceneInfoBuffer);     // Scene info GPU buffer (accessed via BDA)
-	g_renderer.m_allocator.destroyBuffer(g_ReadbackBuffer);   // GPU->CPU selection-index readback
 	g_renderer.m_allocator.destroyBuffer(m_samplerHeapBuffer);   // Descriptor heap: sampler GPU buffer
 
 	// Every loaded texture (hand-authored test images + any glTF material textures) is
@@ -1529,7 +1443,6 @@ bool ImGuiMaterial(CMatHandle hnd)
 		resetTemporal |= SliderTexHandle("Albedo texture", el.m_hndTexture);
 		resetTemporal |= SliderTexHandle("MetallicRoughness texture", el.m_hndMetallicRoughnessTexture);
 		resetTemporal |= SliderTexHandle("Lightmap texture", el.m_hndLightmap);
-		resetTemporal |= SliderTexHandle("Normal map texture", el.m_hndNormalMap);
 	}
 
 	return resetTemporal;

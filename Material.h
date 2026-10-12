@@ -49,14 +49,6 @@ public:
 	// default (most materials are real PBR content where this wouldn't be physically correct);
 	// BSP-generated materials set this to 0.25 (3DBSPLevel.cpp).
 	float m_specOcclusionFromAlbedo = 0.0f;
-	// [10] Tangent-space normal map (glTF's, a hand-assigned one, or a BSP-generated one -- see
-	// GenerateNormalMapFromLuminance, Texture.h). Invalid (IsValid()==false) is the common case
-	// (most materials have none), NOT resolved to a flat-normal fallback here -- that happens once,
-	// per frame, on the GPU-side MaterialData fill (see g_hndDefaultNormalMap, App.cpp),
-	// same reasoning as textureId's kInvalidTextureId sentinel elsewhere: keeps this a plain
-	// "has one or doesn't" handle instead of every construction site needing to know about the
-	// engine default.
-	CTexHandle m_hndNormalMap;
 	// [12] 0..16, multiplies m_emissiveColor before it reaches the shader (see MaterialData::
 	// emissiveIntensity, shader_io.h) -- lets an emissive material read as a genuinely bright light
 	// source instead of being capped to the same 0..1 range as a plain albedo color. 1.0 = off.

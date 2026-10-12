@@ -108,17 +108,6 @@ void Texture::uploadPixels(VulkanContext& vulkanContext, uint32 width, uint32 he
 	};
 	VK_CHECK(vkCreateImageView(vulkanContext.device, &viewInfo, nullptr, &m_rtView));
 	DBG_VK_NAME(m_rtView);
-
-	// Register in the raster bindless descriptor heap; the returned index is also used, at the
-	// same slot, for the ray tracing path's traditional texture array (capped, see
-	// shaderio::kMaxRayTracingTextures -- textures beyond the cap keep a valid raster heap index
-	// but are simply not reachable from the ray tracing path).
-	m_heapIndex = g_renderer.m_descriptorHeap.addTexture(m_image.image, m_image.format, m_image.layout, VK_IMAGE_ASPECT_COLOR_BIT, mipLevels);
-
-	if (m_heapIndex < shaderio::kMaxRayTracingTextures)
-		g_renderer.m_rtTextureViews[m_heapIndex] = m_rtView;
-
-//	LOGI("Texture loaded: %s (%ux%u), descriptor heap index %u\n", debugName.c_str(), width, height, m_heapIndex);
 }
 
 void Texture::loadFromFile(VulkanContext& vulkanContext, const std::string& filename)
