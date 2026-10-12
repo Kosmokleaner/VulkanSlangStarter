@@ -16,7 +16,6 @@ class Texture //todo : public IAppInit
 {
 	utils::ImageResource m_image;
 	VkImageView m_rtView = VK_NULL_HANDLE;
-	uint32 m_heapIndex = 0;
 
 public: // todo 
 	// if true, use m_name as filename to load the textures
@@ -25,8 +24,6 @@ public: // todo
 public:
 	// filename if loadFromFile() was called
 	std::string m_name;
-	// todo: refactor as flags, true: not saves or removed on load
-	bool isEngineTexture = false;
 
 	// true (the default) for color data -- albedo/diffuse/base-color, decoded gamma->linear for
 	// free by the GPU's fixed-function texture sampler (see uploadPixels' format choice) instead of
@@ -64,10 +61,6 @@ public:
 	void deinit(VkDevice device, utils::ResourceAllocator& allocator);
 
 	// interface IAppInit ====================================
-
-	// index into both the raster descriptor heap and (if < shaderio::kMaxRayTracingTextures) the
-	// ray tracing traditional texture array -- this is the value stored in MaterialData::textureId
-	uint32 getHeapIndex() const { return m_heapIndex; }
 
 	// False for a never-loaded Texture, or one deinit() already tore down (deinit() resets
 	// m_image, same "return to a freshly-constructed state" contract as Buffer::deinit()) -- lets
