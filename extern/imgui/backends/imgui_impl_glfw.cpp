@@ -1675,14 +1675,9 @@ static ImGuiMouseSource GetMouseSourceFromMessageExtraInfo()
         return ImGuiMouseSource_TouchScreen;
     return ImGuiMouseSource_Mouse;
 }
-// hacky
-#include "../../../RelativeMouseInput.h"
+
 static LRESULT CALLBACK ImGui_ImplGlfw_WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	// retreave mouse movement
-	extern CRelativeMouseInput g_MouseInput;
-	g_MouseInput.WndProc(hWnd, msg, wParam, lParam);
-
     ImGui_ImplGlfw_Data* bd = (ImGui_ImplGlfw_Data*)::GetPropA(hWnd, "IMGUI_BACKEND_DATA");
     ImGuiIO& io = ImGui::GetIO(bd->Context);
 

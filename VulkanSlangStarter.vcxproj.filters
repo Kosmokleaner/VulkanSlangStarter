@@ -58,9 +58,6 @@
     <ClCompile Include="Buffer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="RelativeMouseInput.cpp">
-      <Filter>Hidden</Filter>
-    </ClCompile>
     <ClCompile Include="Shader.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
@@ -193,9 +190,6 @@
     </ClInclude>
     <ClInclude Include="Buffer.h">
       <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="RelativeMouseInput.h">
-      <Filter>Hidden</Filter>
     </ClInclude>
     <ClInclude Include="Shader.h">
       <Filter>Renderer</Filter>

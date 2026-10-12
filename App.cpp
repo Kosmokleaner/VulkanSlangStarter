@@ -32,7 +32,6 @@
 
 #include "resource.h"
 #include "Shader.h"
-#include "RelativeMouseInput.h"
 #include "EventManager.h"
 #include "Platform.h"
 #include "Texture.h"
@@ -44,7 +43,6 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <filesystem>
 
-CRelativeMouseInput g_MouseInput;
 uint32 g_frameIndex = 0;
 
 Renderer g_renderer;
@@ -574,7 +572,6 @@ App::App(VkExtent2D size)
 #endif
 
 
-	g_MouseInput.Create(glfwGetWin32Window(m_window));
 	init();
 }
 

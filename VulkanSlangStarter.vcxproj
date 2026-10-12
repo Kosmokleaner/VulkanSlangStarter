@@ -171,7 +171,6 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="ObjManager.cpp" />
     <ClCompile Include="Parse.cpp" />
-    <ClCompile Include="RelativeMouseInput.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="ShaderCache.cpp" />
@@ -226,7 +225,6 @@
     <ClInclude Include="App.h" />
     <ClInclude Include="ObjManager.h" />
     <ClInclude Include="Parse.h" />
-    <ClInclude Include="RelativeMouseInput.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCache.h" />
     <ClInclude Include="shaders\shader_io.h" />
