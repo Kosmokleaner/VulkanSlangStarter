@@ -44,7 +44,6 @@
 #include "Reflection.h"
 #include "DeferredRelease.h"
 #include "App.h"
-#include "RenderComponent.h"
 #include "CameraComponent.h"
 #include "Transform.h"
 #include "imgui_stdlib.h"
@@ -81,8 +80,6 @@ Buffer g_meshBuffer(EF_Type_Unknown);
 // (an entity index, see Renderer::createTopLevelAS) to index g_meshBuffer directly.
 Buffer g_entityMeshIndexBuffer(EF_Type_Unknown);
 
-CRenderCompHandle g_plane;
-
 bool g_InfoHUD = false;
 
 // Default mirrors ContextCreateInfo::enableValidationLayers' own NDEBUG-based default
@@ -98,12 +95,6 @@ bool g_enableValidationLayers = false;
 bool g_enableValidationLayers = true;
 #endif
 
-CRenderCompHandle g_lightMesh;
-
-// https://sketchfab.com/3d-models/mech-m-6k-6eba9b1addb7411a85b0c86e41a39a2e 1k textures, there is a 2k texture version
-//Mesh g_mesh("resources/mech_m-6k.glb", 0.03f);
-// https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/SheenWoodLeatherSofa/README.md
-CRenderCompHandle g_mesh; // no texture?
 //
 //Mesh g_mesh("resources/LiamCar.glb");
 // https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/DiffuseTransmissionPlant/README.md
@@ -285,10 +276,6 @@ void setupScene1()
 		g_TextureManager.push_back(tex1);
 	}
 
-	// emplace_back(), not push_back(MeshComponent(...)) -- see CObjManager::emplace_back's comment.
-	g_plane = g_MeshManager.emplace_back("plane");
-	g_MeshManager.GetElementPtr(g_plane)->createPlane(vulkanContext, 10, hndM0);
-	g_MaterialManager.GetElementPtr(hndM0)->m_hndTexture = hndTex;
 
 	// createDescriptorHeap() (called once from init()) also builds the one-time sampler heap;
 	// only the resource heap needs rebuilding here, to account for the textures just added --
@@ -310,29 +297,6 @@ void setupScene1()
 		g_scene.m_sceneObjects.push_back(s);
 	}
 
-	// test scene e.g. couches
-	{
-		Entity s;
-		s.hndRenderComp = g_plane;
-		s.transform.SetPos(float3(0, 0, 0));
-		s.transform.SetScale(float3(10, 10, 10));
-		g_scene.m_sceneObjects.push_back(s);
-		s.transform.SetScale(float3(1, 1, 1));
-
-		s.hndRenderComp = g_mesh;
-		s.transform.SetPos(float3(0, 1, 0));
-		s.transform.SetRotation(float2(0.2f, 0.0f));
-		g_scene.m_sceneObjects.push_back(s);
-
-		int objCount = 8;
-		for (int i = 0; i < objCount - 1; ++i)
-		{
-			float w = i * PI * 2 / objCount;
-			s.transform.SetPos(float3(sin(w), 0, cos(w)) * 3.0f);
-			s.transform.SetRotation(float2(w + 0.1f, 0.0f));
-			g_scene.m_sceneObjects.push_back(s);
-		}
-	}
 
 	setCurrentCamera();
 }
@@ -1208,7 +1172,6 @@ void App::init()
 
 	Log("\n");
 
-	g_MeshManager.InitOnce(4096);
 	g_MaterialManager.InitOnce(4096);
 	g_scene.m_sceneObjects.InitOnce(4096);
 	g_CameraManager.InitOnce(4096);
@@ -1281,23 +1244,6 @@ void App::destroy()
 		vkDestroyPipeline(device, m_computePipeline, nullptr);
 		vkDestroyPipelineLayout(device, m_computePipelineLayout, nullptr);
 
-		// Each Mesh's BLAS handle (m_BottomLevelAS) is a plain VkAccelerationStructureKHR, not a
-		// Buffer, so it isn't reached by the IAppInit/g_deInitListener mechanism below (which only
-		// covers Buffer/Shader) -- destroy it explicitly here, before that call destroys the Buffer
-		// (m_BLAS) backing its memory. Left undestroyed, this is exactly the leak the validation
-		// layer reports at vkDestroyDevice ("N leaked objects... VkAccelerationStructureKHR").
-		{
-			const uint32 meshCount = g_MeshManager.GetElementCount();
-			for (uint32 i = 0; i < meshCount; ++i)
-			{
-				RenderComponent& mesh = g_MeshManager.GetElementByIterator(i);
-				if (mesh.m_BottomLevelAS != VK_NULL_HANDLE)
-				{
-					vkDestroyAccelerationStructureKHR(device, mesh.m_BottomLevelAS, nullptr);
-					mesh.m_BottomLevelAS = VK_NULL_HANDLE;
-				}
-			}
-		}
 
 		// call deinit() on all objects that listen to g_deInitListener
 		// e.g. class Shader, class Buffer
@@ -1876,47 +1822,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 		{
 			const Entity& ref = g_scene.m_sceneObjects.GetElementByIterator(i);
 //			const Entity& ref = *it;
-
-			// Bind the vertex buffer. vkCmdBindVertexBuffers2 (Vulkan 1.3 core) extends the
-			// older vkCmdBindVertexBuffers with optional pSizes and pStrides arrays. With
-			// shader objects, vertex input layout is dynamic (set via vkCmdSetVertexInputEXT
-			// above), so passing explicit sizes/strides here is fine.
-			//
-			// A stale handle here is expected after a scene reload: saveMeshes() only serializes
-			// file-loaded meshes (see Mesh::m_loadFromFile), so a scene object referencing a
-			// procedural mesh (e.g. g_plane) has nothing to resolve to once g_MeshManager is reset
-			// -- matching Renderer::createTopLevelAS()'s equivalent lookup/skip for the ray tracing
-			// path (Renderer.cpp), instead of dereferencing null.
-			//
-			// GetElementPtr() only compares Seed, not whether the slot is actually in use -- a
-			// stale handle whose Seed happens to match a never-used slot's default Seed (0, see
-			// CObjManager::InitOnce) still "resolves" to a non-null Mesh**, but the Mesh* it points
-			// to is the slot's default value, nullptr (g_MeshManager's T is Mesh*, unlike the
-			// value-typed managers) -- so the pointee must be checked too, not just the pointer.
-			RenderComponent* mesh = g_MeshManager.GetElementPtr(ref.hndRenderComp);
-			if (!mesh)
-				continue;
-			if (!mesh->m_vertices.m_data.buffer)
-				continue;
-
-			vkCmdBindVertexBuffers2(cmd, 0, 1, &mesh->m_vertices.m_data.buffer, offsets, sizes, nullptr);
-			vkCmdBindIndexBuffer(cmd, mesh->m_indices.m_data.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-			pushData.modelMatrix = glm::transpose(ref.transform.GetObjectMatrix());
-
-			// One draw call per submesh range, each with its own material (see Mesh::SubMesh) --
-			// every mesh always has at least one submesh now (createPlane()/Mesh::load()/
-			// 3DBSPLevel::Load() all populate it), so there's no more single-material-per-instance
-			// fallback path.
-			ASSERT(!mesh->m_subMeshes.empty());
-			for (auto subIt = mesh->m_subMeshes.begin(), subEnd = mesh->m_subMeshes.end(); subIt != subEnd; ++subIt)
-			{
-				const RenderComponent::SubMesh& sub = *subIt;
-
-				pushData.materialAndMeshID = short2Uint(sub.hndMaterial.Index, ref.hndRenderComp.Index);
-				vkCmdPushDataEXT(cmd, &pushDataInfo);
-				vkCmdDrawIndexed(cmd, sub.indexCount, 1, sub.indexStart, 0, 0);
-			}
 		}
 	}
 

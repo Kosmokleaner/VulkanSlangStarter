@@ -3,7 +3,6 @@
 #include "Buffer.h"
 #include "Scene.h"
 #include "ShaderCache.h"
-#include "RenderComponent.h"
 #include "Texture.h"
 
 #include "vulkanBase.h"

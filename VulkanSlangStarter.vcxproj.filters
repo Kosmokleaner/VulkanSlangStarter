@@ -88,9 +88,6 @@
     <ClCompile Include="EventManager.cpp">
       <Filter>Hidden</Filter>
     </ClCompile>
-    <ClCompile Include="RenderComponent.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="CameraComponent.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
@@ -247,9 +244,6 @@
     </ClInclude>
     <ClInclude Include="EventManager.h">
       <Filter>Hidden</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderComponent.h">
-      <Filter>Renderer</Filter>
     </ClInclude>
     <ClInclude Include="CameraComponent.h">
       <Filter>Renderer</Filter>

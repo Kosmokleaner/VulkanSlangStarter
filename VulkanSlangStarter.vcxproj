@@ -170,7 +170,6 @@
     <ClCompile Include="extern\volk.c" />
     <ClCompile Include="IniArchive.cpp" />
     <ClCompile Include="Material.cpp" />
-    <ClCompile Include="RenderComponent.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="ObjManager.cpp" />
@@ -232,7 +231,6 @@
     <ClInclude Include="global.h" />
     <ClInclude Include="IniArchive.h" />
     <ClInclude Include="Material.h" />
-    <ClInclude Include="RenderComponent.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="ObjManager.h" />
