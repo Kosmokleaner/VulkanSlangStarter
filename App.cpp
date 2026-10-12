@@ -55,7 +55,7 @@ CTexHandle g_hndTex0;
 // below in main(), right after AttachParentConsole().
 bool g_suppressAssertDialogs = false;
 
-bool g_InfoHUD = false;
+bool g_InfoHUD = true;
 
 // on-screen error lines, pushed each frame and shown (then cleared) by App::drawFrame()
 std::vector<std::string> g_UIErrors;

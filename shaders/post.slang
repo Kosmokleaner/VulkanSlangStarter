@@ -35,12 +35,6 @@ Sampler2D g_texture;
 struct VSOutput // AKA PSInput
 {
 	float2 uv : TEXCOORD0;
-	// object space
-	float3 osPos : TEXCOORD1;
-	// view space
-	float4 vsPos : TEXCOORD2;
-	// view space
-	float4 vscsPos : TEXCOORD3;
 	// clip space, for xbox needs this to be last
 	float4 csPos : SV_POSITION;
 };
@@ -52,6 +46,12 @@ void Test(inout ContextGather ui)
 	SceneInfo * scene = (SceneInfo *)pushData.sceneInfoAddress;
 
 	s2h_setScale(ui, 2);
+
+	s2h_printTxt(ui, _S, _h, _a, _d, _e, _r);
+	s2h_printTxt(ui, _2);
+	s2h_printTxt(ui, _H, _u, _m, _a, _n);
+	s2h_printLF(ui);
+	s2h_printLF(ui);
 
 	// s2h_printTxt() takes at most 6 characters per call
 	s2h_printTxt(ui, _R, _E, _S, _COLON, _SPACE);
@@ -77,25 +77,11 @@ VSOutput computeVS(uint vertexId, float4x4 worldToClip, float4x4 worldToView, fl
 	
 
 	// x:-1 / 1, y:-1 / 1
-//	float2 xy = uv * 2.0f - 1.0f;
 	float2 xy = uv * 2.0f + 1;
 
-	output.osPos = float3(xy, 0);
+	float3 osPos = float3(xy, 0);
 	
-	/*
-	if (vertexId == 0)
-		output.osPos = float3(-1.1, -1.1, 0);
-	if (vertexId == 1)
-		output.osPos = float3(1.1, -1.1, 0);
-	if (vertexId == 2)
-		output.osPos = float3(0, 1.1, 0);
-	*/
-	
-	{
-		output.vsPos = mul(worldToView, float4(output.osPos, 1));
-		output.vscsPos = mul(viewToClip, mul(worldToView, float4(output.osPos, 1)));
-		output.csPos = mul(worldToClip, float4(output.osPos, 1));
-	}
+	output.csPos = mul(worldToClip, float4(osPos, 1));
 
 	output.uv = float2(uv.x, 1 - uv.y);
 
@@ -172,7 +158,7 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 	ContextGather ui;
     // pxPos is the integer pixel position + 0.5f (pixel centered)
 	s2h_init(ui, input.position.xy);
-	s2h_setCursor(ui, float2(200, 300));
+	s2h_setCursor(ui, float2(200, 100));
 	s2h_setScale(ui, 1);
 
 	if (scene.infoHUD != 0)
