@@ -46,8 +46,6 @@ uint32 g_frameIndex = 0;
 
 Renderer g_renderer;
 
-CEntityHandle g_currentCamera;
-
 Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain");
 
 // Screen-space rect of the "Viewport" window's content region, captured once per frame (see the

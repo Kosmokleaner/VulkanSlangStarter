@@ -76,8 +76,6 @@ static_assert(sizeof(TypedHandle) == sizeof(CObjHandle) + sizeof(uint32));
 
 
 class CTexHandle : public CObjHandle {};
-class CMatHandle : public CObjHandle {};
-class CEntityHandle : public CObjHandle {};
 
 // object type
 class CMakeHandle : public CObjHandle {};

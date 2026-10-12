@@ -4,8 +4,6 @@
 #include "s2h/s2h.hlsl"
 #include "s2h/s2h_3d.hlsl"
 
-#include "mathlib.slang"
-
 // Define the data that will be interpolated and passed from vertex to fragment shader
 // Note: SV_Position is a special semantic in Slang/HLSL for the clip-space position
 struct VertexOutput
