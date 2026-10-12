@@ -81,50 +81,6 @@ bool g_enableValidationLayers = false;
 bool g_enableValidationLayers = true;
 #endif
 
-//
-//Mesh g_mesh("resources/LiamCar.glb");
-// https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/DiffuseTransmissionPlant/README.md
-//Mesh g_mesh("resources/DiffuseTransmissionPlant.glb");
-// https://github.com/KhronosGroup/glTF-Sample-Assets/blob/main/Models/ABeautifulGame/README.md
-//Mesh g_mesh("resources/ABeautifulGame.glb", 3.0f);	// many wasteful 2K textures
-
-// double-buffered ray-traced output, ping-ponged per frame (see App::updateSceneBuffer)
-// so this frame's fresh result can be temporally blended against last frame's without racing it
-Buffer g_outputBuffer[2] = { Buffer(EF_Type_Unknown), Buffer(EF_Type_Unknown) };
-// This frame's direct/NEE specular-lobe-only radiance + proxy hit distance (see ray.slang's
-// hdrSpecular) -- NRD's REBLUR_DIFFUSE_SPECULAR specular channel input. Double-buffered/ping-ponged
-// exactly like g_outputBuffer above -- Reference Accumulation mode needs last frame's specular
-// value too, to keep accumulating it the same way it already accumulates diffuse; NRD's own
-// dispatch only ever touches the "current" slot, same as it already does for g_outputBuffer.
-Buffer g_outputBufferSpecular[2] = { Buffer(EF_Type_Unknown), Buffer(EF_Type_Unknown) };
-
-struct ImEnable_RAII
-{
-	bool is_enabled;
-
-	ImEnable_RAII(bool enable)
-		: is_enabled(enable)
-	{
-		if (!is_enabled)
-		{
-			const float alpha_multiplier = 0.5f;
-
-			float target_alpha = ImGui::GetStyle().DisabledAlpha * alpha_multiplier;
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, target_alpha);
-			ImGui::BeginDisabled(true);
-		}
-	}
-
-	~ImEnable_RAII()
-	{
-		if (!is_enabled)
-		{
-			ImGui::EndDisabled();
-			ImGui::PopStyleVar();
-		}
-	}
-};
-
 // --- VK_ERROR_DEVICE_LOST diagnostics -------------------------------------------------------
 // Called from VK_CHECK (vk_framework.h) specifically on VK_ERROR_DEVICE_LOST. Queries whatever
 // extra diagnostics the driver offers -- see the comment where these extensions get enabled,
