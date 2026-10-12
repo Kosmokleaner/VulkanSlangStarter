@@ -167,12 +167,10 @@
     <ClCompile Include="extern\imgui\imgui_tables.cpp" />
     <ClCompile Include="extern\imgui\imgui_widgets.cpp" />
     <ClCompile Include="extern\volk.c" />
-    <ClCompile Include="IniArchive.cpp" />
     <ClCompile Include="Texture.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="ObjManager.cpp" />
     <ClCompile Include="Parse.cpp" />
-    <ClCompile Include="Reflection.cpp" />
     <ClCompile Include="RelativeMouseInput.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Shader.cpp" />
@@ -224,12 +222,10 @@
     <ClInclude Include="extern\vk_mem_alloc.h" />
     <ClInclude Include="extern\volk.h" />
     <ClInclude Include="global.h" />
-    <ClInclude Include="IniArchive.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="ObjManager.h" />
     <ClInclude Include="Parse.h" />
-    <ClInclude Include="Reflection.h" />
     <ClInclude Include="RelativeMouseInput.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="ShaderCache.h" />

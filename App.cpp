@@ -37,8 +37,6 @@
 #include "Platform.h"
 #include "Texture.h"
 #include "Renderer.h"
-#include "IniArchive.h"
-#include "Reflection.h"
 #include "DeferredRelease.h"
 #include "App.h"
 #include "Transform.h"
@@ -510,9 +508,6 @@ App::App(VkExtent2D size)
 	// be rendered in a DPI sensitive fashion.
 	SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 
-	CIniArchive iniArchive;
-	iniArchive.Load("Settings.ini");
-
 	// Vulkan Loader
 	VK_CHECK(volkInitialize());
 	// Create the GLFW window
@@ -586,11 +581,6 @@ App::App(VkExtent2D size)
 App::~App()
 {
 	destroy();
-
-	{
-		CIniArchive iniArchive;
-		iniArchive.Save("Settings.ini");
-	}
 
 	glfwDestroyWindow(m_window);
 }

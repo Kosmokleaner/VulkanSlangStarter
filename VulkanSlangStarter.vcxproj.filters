@@ -58,9 +58,6 @@
     <ClCompile Include="Buffer.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="IniArchive.cpp">
-      <Filter>Hidden</Filter>
-    </ClCompile>
     <ClCompile Include="RelativeMouseInput.cpp">
       <Filter>Hidden</Filter>
     </ClCompile>
@@ -87,9 +84,6 @@
     </ClCompile>
     <ClCompile Include="ObjManager.cpp">
       <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="Reflection.cpp">
-      <Filter>Hidden</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -200,9 +194,6 @@
     <ClInclude Include="Buffer.h">
       <Filter>Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="IniArchive.h">
-      <Filter>Hidden</Filter>
-    </ClInclude>
     <ClInclude Include="RelativeMouseInput.h">
       <Filter>Hidden</Filter>
     </ClInclude>
@@ -232,9 +223,6 @@
     </ClInclude>
     <ClInclude Include="ObjManager.h">
       <Filter>Renderer</Filter>
-    </ClInclude>
-    <ClInclude Include="Reflection.h">
-      <Filter>Hidden</Filter>
     </ClInclude>
     <ClInclude Include="extern\imgui\imconfig.h">
       <Filter>Hidden</Filter>
