@@ -97,8 +97,7 @@ void Texture::uploadPixels(VulkanContext& vulkanContext, uint32 width, uint32 he
 		vkCmdBlitImage(vulkanContext.cmd, m_image.image, VK_IMAGE_LAYOUT_GENERAL, m_image.image, VK_IMAGE_LAYOUT_GENERAL, 1, &blit, VK_FILTER_LINEAR);
 	}
 
-	// Traditional (non-heap) image view, for the ray tracing closest-hit shader's texture lookup
-	// -- see Renderer::m_rtTextureViews' comment for why the heap can't be used there.
+	// Traditional (non-heap) image view, for non-bindless binding -- see getImageView().
 	const VkImageViewCreateInfo viewInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.image = m_image.image,
@@ -106,8 +105,8 @@ void Texture::uploadPixels(VulkanContext& vulkanContext, uint32 width, uint32 he
 		.format = format,
 		.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 1},
 	};
-	VK_CHECK(vkCreateImageView(vulkanContext.device, &viewInfo, nullptr, &m_rtView));
-	DBG_VK_NAME(m_rtView);
+	VK_CHECK(vkCreateImageView(vulkanContext.device, &viewInfo, nullptr, &m_view));
+	DBG_VK_NAME(m_view);
 }
 
 void Texture::loadFromFile(VulkanContext& vulkanContext, const std::string& filename)
@@ -148,10 +147,10 @@ void Texture::loadFromMemory(VulkanContext& vulkanContext, const uint32_t* rgba,
 
 void Texture::deinit(VkDevice device, utils::ResourceAllocator& allocator)
 {
-	if (m_rtView != VK_NULL_HANDLE)
+	if (m_view != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(device, m_rtView, nullptr);
-		m_rtView = VK_NULL_HANDLE;
+		vkDestroyImageView(device, m_view, nullptr);
+		m_view = VK_NULL_HANDLE;
 	}
 	allocator.destroyImageResource(m_image);
 	// destroyImageResource() (extern/vk_framework.h) doesn't null out m_image itself -- reset it

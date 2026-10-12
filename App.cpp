@@ -44,7 +44,8 @@
 
 Renderer g_renderer;
 
-Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain");
+// non-bindless with 1 texture slot (post.slang's g_texture), bound in App::recordGraphicsCommands()
+Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain", 1);
 
 // Screen-space rect of the "Viewport" window's content region, captured once per frame (see the
 // mouse-position block in run()) so the gizmo (drawn later, in drawFrame()) can be positioned with
@@ -953,6 +954,10 @@ void App::init()
 		| VK_BUFFER_USAGE_2_TRANSFER_DST_BIT | VK_BUFFER_USAGE_2_SHADER_DEVICE_ADDRESS_BIT,
 		VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE);
 	DBG_VK_NAME(m_sceneInfoBuffer.buffer);
+
+	// Load the test textures at startup (same as the "setup #1" button) -- g_hndTex0 is what
+	// recordGraphicsCommands() displays on top of the gradient.
+	setupScene1();
 }
 
 void App::destroy()
@@ -1363,9 +1368,10 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	const VkRect2D     scissor{ {0, 0}, m_viewportSize };
 
 	/*--
-	 * Prepare push data: with descriptor heap, the pipeline layout is VK_NULL_HANDLE so we cannot
-	 * use traditional push constants or push descriptors. Instead, vkCmdPushDataEXT sends small
-	 * per-draw data to the shader's push_constant block. Push data carries only:
+	 * Prepare push data: Shader::cmdPushData() sends it to the shader's push_constant block with
+	 * vkCmdPushDataEXT for a bindless (descriptor heap) shader -- its pipeline layout is
+	 * VK_NULL_HANDLE, so traditional push constants are unavailable -- or with vkCmdPushConstants2
+	 * for a non-bindless one (like g_post). Push data carries only:
 	 *   - The buffer device address of the SceneInfo buffer (updated once per frame above)
 	 *   - The per-draw triangle color (changes between draw calls)
 	 * The shader reads SceneInfo from GPU memory via buffer reference, keeping push data small.
@@ -1379,13 +1385,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	// null-pointer read fault on frame 1 only (frame 2+ self-heals since the buffer already exists
 	// by then). This was a real, reproduced VK_ERROR_DEVICE_LOST right after startup.
 	pushData.modelMatrix = glm::mat4(1.0f);
-
-	// VkPushDataInfoEXT describes where in push_constant space to write and the CPU data to upload
-	VkPushDataInfoEXT pushDataInfo{
-		.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
-		.offset = 0,
-		.data = {.address = &pushData, .size = sizeof(shaderio::GraphicsPushData)},
-	};
 
 	VkClearColorValue clearColor; // dark yellow
 	clearColor.float32[0] = 0.5f;
@@ -1454,16 +1453,27 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	// the two draws below.
 	setGraphicsDynamicState(cmd, viewport, scissor);
 
-	vkCmdPushDataEXT(cmd, &pushDataInfo);
-
 	// post #################################
 
-	if(g_post.m_shader[0] && g_post.m_shader[1])
+	const Texture* tex0 = g_TextureManager.GetElementPtr(g_hndTex0);
+
+	if(!g_post.m_shader[0] || !g_post.m_shader[1])
+		g_UIErrors.push_back("g_post failed to compile");
+	else if(!tex0 || !tex0->isLoaded())
+		g_UIErrors.push_back("g_hndTex0 failed to load (see setupScene1)");
+	else
 	{
 		utils::cmdBindGraphicsShaders(cmd, g_post.m_shader[0], g_post.m_shader[1]);
+		g_post.cmdPushData(cmd, pushData);
+
+		// non-bindless: one combined image sampler per texture slot, in binding order
+		const VkDescriptorImageInfo textures[] = {
+			{ m_linearSampler, tex0->getImageView(), VK_IMAGE_LAYOUT_GENERAL },
+		};
+		g_post.cmdBindTextures(g_renderer.m_context.getDevice(), cmd, m_swapchain.getFrameResourceIndex(), textures);
+
 		vkCmdDraw(cmd, 3, 1, 0, 0);  // 3 vertices
 	}
-	else g_UIErrors.push_back("g_post failed to compile");
 
 	vkCmdEndRendering(cmd);
 }
@@ -1565,10 +1575,9 @@ void App::createDescriptorHeap(VkCommandBuffer cmd)
 		.maxLod = VK_LOD_CLAMP_NONE,
 	};
 
-	// Same sampler, but as a plain VkSampler for the ray tracing pipeline's traditional binding
-	// (see Shader::updateRayDescriptorSet's comment). acquireSampler deduplicates against the
-	// heap-registered one below, so this doesn't create a second physical sampler object.
-	m_rtSampler = m_samplerPool.acquireSampler(samplerCI);
+	// Same sampler, but as a plain VkSampler for non-bindless (classic descriptor set) binding,
+	// see Shader::cmdBindTextures(). Owned by m_samplerPool (destroyed in its deinit()).
+	m_linearSampler = m_samplerPool.acquireSampler(samplerCI);
 
 	// Using acquireSamplerDescriptor avoid any duplicate samplers in the heap.
 	uint32 samplerIndex = m_samplerPool.acquireSamplerDescriptor(samplerCI);

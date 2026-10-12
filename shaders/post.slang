@@ -26,6 +26,11 @@ struct PixelOutput
 [[vk::push_constant]]
 ConstantBuffer<GraphicsPushData> pushData;
 
+// Non-bindless texture: classic descriptor set 0, binding 0 (combined image sampler). g_post is
+// created with 1 texture slot (see Shader::m_textureCount), App::recordGraphicsCommands binds it.
+[[vk::binding(0, 0)]]
+Sampler2D g_texture;
+
 //------------------------------------------------------------------------------
 
 struct VSOutput // AKA PSInput
@@ -182,6 +187,23 @@ PixelOutput fragmentMain(VertexOutput input, uint primitiveID : SV_PrimitiveID)
 
 	// UV gradient
 	linearBackground = float4(input.position.xy / scene.resolution, 0, 1);
+
+	// Texture on top of the gradient, centered. Power-of-two scale (native size if it fits in 3/4 of
+	// the viewport) so each pixel lands on a texel center of a single mip -- crisp, no filter blur.
+	{
+		uint texWidth, texHeight;
+		g_texture.GetDimensions(texWidth, texHeight);
+		float2 texSize = float2(texWidth, texHeight);
+		float2 fit = scene.resolution * 0.75f / texSize;
+		float scale = min(1.0f, exp2(floor(log2(min(fit.x, fit.y)))));
+		float2 rectSize = texSize * scale;
+		float2 rectMin = floor((scene.resolution - rectSize) * 0.5f);
+		float2 texUV = (input.position.xy - rectMin) / rectSize;
+		// sampled outside the branch so the implicit mip derivatives stay valid at the rect edges
+		float4 texColor = g_texture.Sample(texUV);	// sRGB format: already decoded to linear
+		if (all(texUV >= 0.0f) && all(texUV < 1.0f))
+			linearBackground.rgb = lerp(linearBackground.rgb, texColor.rgb, texColor.a);
+	}
 
 	// Note: ui.dstColor is premultiplied
 	float4 linearColor = linearBackground * (1.0f - ui.dstColor.a) + ui.dstColor;

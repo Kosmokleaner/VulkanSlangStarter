@@ -40,9 +40,10 @@ Shader::Shader(const char* inFilePath, const char* inRayGen, const char* inRayMi
 	functionName[2] = inRayClosestHit;
 }
 
-Shader::Shader(const char* inFilePath, const char* inVS, const char* inPS)
+Shader::Shader(const char* inFilePath, const char* inVS, const char* inPS, uint32 inTextureCount)
 	: filePath(inFilePath)
 	, IAppInit(EF_Type_Shader)
+	, m_textureCount(inTextureCount)
 	, m_sbt(EF_Type_Unknown)
 {
 	ASSERT(inVS);
@@ -51,6 +52,12 @@ Shader::Shader(const char* inFilePath, const char* inVS, const char* inPS)
 	functionName[0] = inVS;
 	functionName[1] = inPS;
 }
+
+// Non-bindless only: the stages that see the descriptor set and push constants, and the push constant
+// range. Must be identical for the vertex and fragment shader objects and m_pipelineLayout -- bound
+// shader objects have to agree on their set layouts (VUID-vkCmdDraw-None-08879).
+static constexpr VkShaderStageFlags kGfxStages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+static const VkPushConstantRange kGfxPushConstantRange = { kGfxStages, 0, sizeof(shaderio::GraphicsPushData) };
 
 // createGlobalSession() is slow (~180ms) so don't do for each shader
 // todo: release
@@ -245,32 +252,10 @@ void Shader::compile()
 				(const char*)diagnostics->getBufferPointer());
 	}
 
-	// Trigger the compiler, 0 is success
-//old	const SlangResult compileResult = request->compile();
-
-	// Always check diagnostics/logs for GLSL syntax errors
-//old	if (const char* diagnostics = request->getDiagnosticOutput())
-//old	if (*diagnostics)
-//old	{
-//old		//			Log("Compiler Output:\n%s\n", diagnostics);
-//old		OutputDebugStringA(diagnostics);
-//old	}
-
-//	if (SLANG_FAILED(compileResult))
-//	{
-//		ASSERT(0);
-//		return;		// Handle compilation failure
-//	}
-
 	// todo
 	for (int stageId = 0; stageId < stageCount; ++stageId)
 	{
-		//		SCOPED_CPU_TIMER_LOG(getStages);
-
-		//old		const void* spirvCode = request->getEntryPointCode(entryPointIndex[stageId], &spirvSize);
 		Slang::ComPtr<ISlangBlob> spirv;
-
-		//		SlangInt entryPointIndex = module->getDefinedEntryPoint(stageId);
 
 		linked->getEntryPointCode(stageId, 0, spirv.writeRef(), nullptr);
 
@@ -344,10 +329,21 @@ void Shader::createGfx(EventContext& context)
 	if (code[0].empty() || code[1].empty())
 		return;
 
+	// Bindless: textures come from the descriptor heap and per-draw data from vkCmdPushDataEXT, so
+	// no descriptor set layouts / push constant ranges (VUID-VkShaderCreateInfoEXT-flags-11290/11370).
+	// Non-bindless: classic descriptor set 0 + push constants, the same ones m_pipelineLayout has.
+	const bool bindless = m_textureCount == 0;
+	if (!bindless)
+		createDescriptorSets(context);
+
 	// Three unlinked shader objects. nextStage is a hint to the driver about
 	// which stage will follow at bind time -- it doesn't constrain what we
 	// can actually bind.
-	const VkShaderCreateFlagsEXT commonFlags = VK_SHADER_CREATE_DESCRIPTOR_HEAP_BIT_EXT;
+	const VkShaderCreateFlagsEXT commonFlags = bindless ? VK_SHADER_CREATE_DESCRIPTOR_HEAP_BIT_EXT : 0;
+	const uint32 setLayoutCount = bindless ? 0 : 1;
+	const VkDescriptorSetLayout* pSetLayouts = bindless ? nullptr : &m_descSetLayout;
+	const uint32 pushConstantRangeCount = bindless ? 0 : 1;
+	const VkPushConstantRange* pPushConstantRanges = bindless ? nullptr : &kGfxPushConstantRange;
 
 	VkShaderCreateInfoEXT vertCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT,
@@ -358,10 +354,10 @@ void Shader::createGfx(EventContext& context)
 		.codeSize = code[0].size() * sizeof(uint32),
 		.pCode = code[0].data(),
 		.pName = "main", // VS
-		.setLayoutCount = 0,  // Descriptor heap: no descriptor set layouts
-		.pSetLayouts = nullptr,
-		.pushConstantRangeCount = 0,  // Push data (vkCmdPushDataEXT) is used instead
-		.pPushConstantRanges = nullptr,
+		.setLayoutCount = setLayoutCount,
+		.pSetLayouts = pSetLayouts,
+		.pushConstantRangeCount = pushConstantRangeCount,
+		.pPushConstantRanges = pPushConstantRanges,
 		.pSpecializationInfo = nullptr,  // Vertex shader has no spec constants
 	};
 
@@ -374,10 +370,10 @@ void Shader::createGfx(EventContext& context)
 		.codeSize = code[1].size() * sizeof(uint32),
 		.pCode = code[1].data(),
 		.pName = "main", // PS
-		.setLayoutCount = 0,
-		.pSetLayouts = nullptr,
-		.pushConstantRangeCount = 0,
-		.pPushConstantRanges = nullptr,
+		.setLayoutCount = setLayoutCount,
+		.pSetLayouts = pSetLayouts,
+		.pushConstantRangeCount = pushConstantRangeCount,
+		.pPushConstantRanges = pPushConstantRanges,
 //		.pSpecializationInfo = &specInfoTextured,
 	};
 
@@ -387,6 +383,116 @@ void Shader::createGfx(EventContext& context)
 	DBG_VK_NAME2(m_shader[0], "VS");
 	VK_CHECK(vkCreateShadersEXT(context.device, 1, &fragCreateInfoTextured, nullptr, &m_shader[1]));
 	DBG_VK_NAME2(m_shader[1], "FS");
+}
+
+void Shader::createDescriptorSets(EventContext& context)
+{
+	ASSERT(m_textureCount);
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings(m_textureCount);
+	for (uint32 i = 0; i < m_textureCount; ++i)
+	{
+		bindings[i] = {
+			.binding = i,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.descriptorCount = 1,
+			.stageFlags = kGfxStages,
+		};
+	}
+	const VkDescriptorSetLayoutCreateInfo layoutInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.bindingCount = m_textureCount,
+		.pBindings = bindings.data(),
+	};
+	VK_CHECK(vkCreateDescriptorSetLayout(context.device, &layoutInfo, nullptr, &m_descSetLayout));
+	DBG_VK_NAME2(m_descSetLayout, filePath);
+
+	// one set per frame-in-flight slot, see m_descSet
+	const VkDescriptorPoolSize poolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_textureCount * Renderer::kMaxFramesInFlight };
+	const VkDescriptorPoolCreateInfo poolInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+		.maxSets = Renderer::kMaxFramesInFlight,
+		.poolSizeCount = 1,
+		.pPoolSizes = &poolSize,
+	};
+	VK_CHECK(vkCreateDescriptorPool(context.device, &poolInfo, nullptr, &m_descPool));
+	DBG_VK_NAME2(m_descPool, filePath);
+
+	VkDescriptorSetLayout setLayouts[Renderer::kMaxFramesInFlight];
+	for (VkDescriptorSetLayout& setLayout : setLayouts)
+		setLayout = m_descSetLayout;
+	const VkDescriptorSetAllocateInfo allocInfo{
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+		.descriptorPool = m_descPool,
+		.descriptorSetCount = Renderer::kMaxFramesInFlight,
+		.pSetLayouts = setLayouts,
+	};
+	VK_CHECK(vkAllocateDescriptorSets(context.device, &allocInfo, m_descSet));
+
+	const VkPipelineLayoutCreateInfo pipelineLayoutInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.setLayoutCount = 1,
+		.pSetLayouts = &m_descSetLayout,
+		.pushConstantRangeCount = 1,
+		.pPushConstantRanges = &kGfxPushConstantRange,
+	};
+	VK_CHECK(vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout));
+	DBG_VK_NAME2(m_pipelineLayout, filePath);
+}
+
+void Shader::cmdPushData(VkCommandBuffer cmd, const shaderio::GraphicsPushData& data) const
+{
+	if (!m_textureCount)
+	{
+		const VkPushDataInfoEXT pushDataInfo{
+			.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+			.offset = 0,
+			.data = {.address = &data, .size = sizeof(data)},
+		};
+		vkCmdPushDataEXT(cmd, &pushDataInfo);
+	}
+	else
+	{
+		const VkPushConstantsInfo pushConstantsInfo{
+			.sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO,
+			.layout = m_pipelineLayout,
+			.stageFlags = kGfxStages,
+			.offset = 0,
+			.size = sizeof(data),
+			.pValues = &data,
+		};
+		vkCmdPushConstants2(cmd, &pushConstantsInfo);
+	}
+}
+
+void Shader::cmdBindTextures(VkDevice device, VkCommandBuffer cmd, uint32 frameSlot, std::span<const VkDescriptorImageInfo> textures)
+{
+	ASSERT(m_textureCount && textures.size() == m_textureCount);
+	ASSERT(frameSlot < Renderer::kMaxFramesInFlight);
+
+	std::vector<VkWriteDescriptorSet> writes(m_textureCount);
+	for (uint32 i = 0; i < m_textureCount; ++i)
+	{
+		writes[i] = {
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = m_descSet[frameSlot],
+			.dstBinding = i,
+			.descriptorCount = 1,
+			.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			.pImageInfo = &textures[i],
+		};
+	}
+	vkUpdateDescriptorSets(device, m_textureCount, writes.data(), 0, nullptr);
+
+	const VkBindDescriptorSetsInfo bindInfo{
+		.sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO,
+		.stageFlags = kGfxStages,
+		.layout = m_pipelineLayout,
+		.firstSet = 0,
+		.descriptorSetCount = 1,
+		.pDescriptorSets = &m_descSet[frameSlot],
+	};
+	vkCmdBindDescriptorSets2(cmd, &bindInfo);
 }
 
 // @return 0 if failed
@@ -420,25 +526,24 @@ void Shader::reload(EventContext& context)
 
 void Shader::deinit(EventContext& context)
 {
-	if (m_rtPool != VK_NULL_HANDLE)
+	if (m_descPool != VK_NULL_HANDLE)
 	{
 		// Destroying the pool implicitly frees every descriptor set allocated from it.
-		vkDestroyDescriptorPool(context.device, m_rtPool, nullptr);
-		m_rtPool = {};
+		vkDestroyDescriptorPool(context.device, m_descPool, nullptr);
+		m_descPool = {};
 	}
-	if (m_rtDescSetLayout != VK_NULL_HANDLE)
+	if (m_descSetLayout != VK_NULL_HANDLE)
 	{
-		vkDestroyDescriptorSetLayout(context.device, m_rtDescSetLayout, nullptr);
-		m_rtDescSetLayout = {};
+		vkDestroyDescriptorSetLayout(context.device, m_descSetLayout, nullptr);
+		m_descSetLayout = {};
 	}
-	if (m_rtPipelineLayout != VK_NULL_HANDLE)
+	if (m_pipelineLayout != VK_NULL_HANDLE)
 	{
-		vkDestroyPipelineLayout(context.device, m_rtPipelineLayout, nullptr);
-		m_rtPipelineLayout = {};
+		vkDestroyPipelineLayout(context.device, m_pipelineLayout, nullptr);
+		m_pipelineLayout = {};
 	}
-	for (VkDescriptorSet& descSet : m_rtDescSet)
+	for (VkDescriptorSet& descSet : m_descSet)
 		descSet = {};
-//	m_rtDescSet = {};
 
 	vkDestroyShaderEXT(context.device, m_shader[0], nullptr); m_shader[0] = {};
 	vkDestroyShaderEXT(context.device, m_shader[1], nullptr); m_shader[1] = {};

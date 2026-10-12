@@ -7,15 +7,15 @@
 
 struct VulkanContext;
 
-// A single loaded texture image, registered both in the raster path's bindless descriptor heap
-// (g_renderer.m_descriptorHeap) and, at the same index, in the ray tracing path's traditional
-// texture array (g_renderer.m_rtTextureViews) -- see Renderer.h's m_rtTextureViews comment for why
-// ray tracing can't just use the heap. Managed the same way as Material: stored by value in
-// g_TextureManager, referenced elsewhere via the CObjHandle AddElement() returns.
+// A single loaded texture image (full mip chain, VK_IMAGE_LAYOUT_GENERAL). Non-bindless shaders
+// sample it through getImageView() plus a VkSampler in a classic descriptor set, see
+// Shader::cmdBindTextures(). Stored by value in g_TextureManager, referenced elsewhere via the
+// CTexHandle push_back() returns.
 class Texture //todo : public IAppInit
 {
 	utils::ImageResource m_image;
-	VkImageView m_rtView = VK_NULL_HANDLE;
+	// classic (non-heap) view over all mips, for non-bindless binding
+	VkImageView m_view = VK_NULL_HANDLE;
 
 public: // todo 
 	// if true, use m_name as filename to load the textures
@@ -67,6 +67,10 @@ public:
 	// a caller holding onto a Texture across a deinit()/reload cycle (an engine texture surviving
 	// loadScene()'s teardown sweep, e.g.) tell whether it still needs re-uploading.
 	bool isLoaded() const { return m_image.image != VK_NULL_HANDLE; }
+
+	// for non-bindless binding (VkDescriptorImageInfo::imageView, layout VK_IMAGE_LAYOUT_GENERAL),
+	// VK_NULL_HANDLE if !isLoaded()
+	VkImageView getImageView() const { return m_view; }
 
 private:
 	void uploadPixels(VulkanContext& vulkanContext, uint32 width, uint32 height, const uint8_t* rgba, const std::string& debugName);

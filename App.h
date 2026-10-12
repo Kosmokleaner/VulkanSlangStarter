@@ -104,7 +104,8 @@ private:
 	// The sampler pool, used to create a sampler for the texture
 	utils::SamplerPool m_samplerPool;
 
-	VkSampler m_rtSampler{};
+	// linear filtering, repeat addressing; for non-bindless textures (see createDescriptorHeap)
+	VkSampler m_linearSampler{};
 
 	// g_outputBuffer's allocated capacity in pixels; see onViewportSizeChange's grow-only comment.
 	VkDeviceSize m_outputBufferCapacityPixels{};
