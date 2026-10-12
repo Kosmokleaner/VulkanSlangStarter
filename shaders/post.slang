@@ -93,55 +93,22 @@ void Test(inout ContextGather ui)
 {
 	SceneInfo * scene = (SceneInfo *)pushData.sceneInfoAddress;
 
-	uint2 resolution = (uint2)scene.resolution;
-
-	// 16MB extra data to maintain state over multiple frames
-	float4* extraDataIn = (float4*)scene.outputAddress + resolution.x * resolution.y;
-	float4* extraDataOut = (float4*)scene.prevOutputAddress + resolution.x * resolution.y;
+	// Note: don't read scene.outputAddress/prevOutputAddress here -- the C++ side no longer
+	// allocates that buffer (removed with the ray tracer), so both are 0 and any read faults
+	// the GPU (VK_ERROR_DEVICE_LOST).
 
 	s2h_setScale(ui, 2);
 
-	s2h_printTxt(ui, _I, _N, _COLON);
-	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataIn[0]);
-	s2h_printTxt(ui, _COLON);
-	s2h_printInt(ui, asuint(extraDataIn[0].x));
-	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataIn[1]);
-	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataIn[2]);
-	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataIn[3]);
-	s2h_printLF(ui);
+	// s2h_printTxt() takes at most 6 characters per call
+	s2h_printTxt(ui, _R, _E, _S, _COLON, _SPACE);
+	s2h_printInt(ui, (int)scene.resolution.x);
+	s2h_printTxt(ui, _SPACE);
+	s2h_printInt(ui, (int)scene.resolution.y);
 	s2h_printLF(ui);
 
-	s2h_printTxt(ui, _O, _U, _T, _COLON);
+	s2h_printTxt(ui, _C, _A, _M, _COLON, _SPACE);
+	s2h_printFloat3(ui, scene.wsCameraPos);
 	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataOut[0]);
-	s2h_printTxt(ui, _COLON);
-	s2h_printInt(ui, asuint(extraDataOut[0].x));
-	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataOut[1]);
-	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataOut[2]);
-	s2h_printLF(ui);
-	s2h_printFloat4(ui, extraDataOut[3]);
-
-
-	s2h_printLF(ui);
-	s2h_printLF(ui);
-	{
-		// interaction.slang's rayGenMain wrote this earlier in the same frame -- see
-		// kInteractionResultOffset's comment (shader_io.h) for why this is scene.outputAddress
-		// (not prevOutputAddress/extraDataIn/extraDataOut above).
-		float4* interactionResult = (float4*)scene.outputAddress + resolution.x * resolution.y + kInteractionResultOffset;
-		int objectIndex = asint(interactionResult[0].w);
-
-		// s2h_printTxt() takes at most 6 characters per call
-		s2h_printTxt(ui, _O, _b, _j, _e, _c, _t);
-		s2h_printTxt(ui, _COLON, _SPACE);
-		s2h_printInt(ui, objectIndex);
-	}
 }
 
 
