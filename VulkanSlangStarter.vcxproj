@@ -236,7 +236,6 @@
     <ClInclude Include="IniArchive.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="RenderComponent.h" />
-    <ClInclude Include="Plane3.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="ObjManager.h" />
