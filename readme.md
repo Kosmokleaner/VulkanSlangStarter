@@ -3,7 +3,7 @@
 
 A starting point for a Vulkan renderer by Martin Mittring
 
-<img width="969" height="635" alt="image" src="https://github.com/user-attachments/assets/fa9d0d22-9f62-4605-b0c4-8bf1f2c29e86" />
+<img width="75%" alt="image" src="https://github.com/user-attachments/assets/fa9d0d22-9f62-4605-b0c4-8bf1f2c29e86" />
 
 Features:
 * Slang (HLSL like but allows for differential, compiles slower)
