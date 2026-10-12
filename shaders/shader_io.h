@@ -72,15 +72,6 @@ struct SceneInfo
 	float3 clearColor;
 	float zNear;
 
-
-	uint temporalAccumulator;
-	// 1/(temporalAccumulator+1)
-	float invTemporalAccumulator;
-	// 0.0f / 1.0f
-	float temporalMixIn;
-	// for frame Jitter
-	uint frameIndex;
-
 	// Basic homogeneous participating media (ray.slang: EvalFogTransmittance/EvalInscattering). A
 	// per-channel extinction/scattering coefficient is fogDensity * fogColor (single-scattering
 	// albedo of 1, i.e. no separate absorption); 0 density disables fog entirely. fogColor also
