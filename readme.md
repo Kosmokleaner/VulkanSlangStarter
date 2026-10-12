@@ -1,23 +1,28 @@
 
-# VulkanSlangStarter V 0.9
+# VulkanSlangStarter V 1.0
 
 A starting point for a Vulkan renderer by Martin Mittring
 
 Features:
-* Shader cache for faster startup (supporting includes, cache key is file content based, not date)
 * Slang (HLSL like but allows for differential, compiles slower)
-* ImGui (2D Immediate Mode GUI)
+* Shader cache for faster startup (supporting includes, cache key is file content based, not date)
+* Shader hot reload (press F5)
+* ImGui (2D Immediate Mode GUI, Docking Branch)
+* Texture support (non bindless)
+* Uses ShaderToHuman to print text from inside the shader, see below
+* Window and App icon (red triangle)
 
-Platform: Windows11 x64, later Linux
+Platform: Windows11 x64
+Tested on "NVIDIA GeForce RTX 2080", driver "610.188.0"
 
 Command line parameters: --validate=0 / --validate=1 to turn the Vulkan validation layers off/on
 (default: on in Debug, off in Release)
 
 ### todo (next ones on top):
-*
+* support Linux
 
 ### done (add at top, some element have been added at bottom):
-*
+* 10/12/2026 V1.0
 
 ===============================================
 
@@ -33,10 +38,3 @@ Command line parameters: --validate=0 / --validate=1 to turn the Vulkan validati
 * [ShaderToHuman (S2H)](https://github.com/electronicarts/ShaderToHuman)
 * hash-library (sha256 http://create.stephan-brumme.com/disclaimer.html)
  
-### random notes
-* filesystem requires c++ 17+
-* span requires c++ 20+
-* RenderDoc does not support descriptorheap yet so cannot use it
-
-### useful references
-*
