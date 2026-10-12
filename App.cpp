@@ -63,7 +63,6 @@ CEntityHandle g_currentCamera;
 
 Shader g_gfx("shaders/shader.rast.slang", "vertexMain", "fragmentMain");
 Shader g_post("shaders/post.slang", "vertexMain", "fragmentMain");
-Shader g_s2h_3d("shaders/s2h_3d.slang", "vertexMain", "fragmentMain");
 
 // Screen-space rect of the "Viewport" window's content region, captured once per frame (see the
 // mouse-position block in run()) so the gizmo (drawn later, in drawFrame()) can be positioned with
@@ -377,15 +376,6 @@ void OnVulkanDeviceLost()
 
 	LogDeviceFaultInfo(device);
 	LogCheckpointInfo();
-}
-
-// Drops a named VK_NV_device_diagnostic_checkpoints marker into cmd if the extension is available;
-// no-op otherwise. marker must be a string literal / static storage -- the driver stores the raw
-// pointer, it doesn't copy the string.
-static void SetCheckpoint(VkCommandBuffer cmd, const char* marker)
-{
-	if (vkCmdSetCheckpointNV)
-		vkCmdSetCheckpointNV(cmd, marker);
 }
 
 #pragma comment(lib, "winmm.lib")
@@ -1569,18 +1559,12 @@ void App::drawFrame(VkCommandBuffer cmd)
 	vkCmdPipelineBarrier2(cmd, &rtToImGuiDep);
 
 	// Start rendering to the swapchain
-	SetCheckpoint(cmd, "before beginDynamicRenderingToSwapchain");
 	beginDynamicRenderingToSwapchain(cmd);
 	{
 		// The ImGui draw commands are recorded to the command buffer, which includes the display of our RenderTarget image
-		SetCheckpoint(cmd, "before ImGui_ImplVulkan_RenderDrawData");
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd);
-		SetCheckpoint(cmd, "after ImGui_ImplVulkan_RenderDrawData");
 	}
 	endDynamicRenderingToSwapchain(cmd);
-	SetCheckpoint(cmd, "after endDynamicRenderingToSwapchain");
-
-	SetCheckpoint(cmd, "drawFrame end (recording complete)");
 }
 
 
@@ -1773,8 +1757,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 {
 	DBG_VK_SCOPE(cmd);  // <-- Helps to debug in Nsight
 
-	SetCheckpoint(cmd, "recordGraphicsCommands start");
-
 	// Update g_lights before the scene buffer, which points SceneInfo::lightsAddress/lightCount at
 	// it (cannot be done inside dynamic rendering)
 	updateSceneBuffer(cmd);
@@ -1867,7 +1849,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 
 
 	// Begin dynamic rendering
-	SetCheckpoint(cmd, "before vkCmdBeginRendering (offscreen graphics pass)");
 	vkCmdBeginRendering(cmd, &renderingInfo);
 
 	// ---- Dynamic state ----------------------------------------------------
@@ -1884,7 +1865,6 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 
 	if(bGfx)
 	{
-		SetCheckpoint(cmd, "before main scene draw loop");
 		ASSERT(g_gfx.m_shader[0]);
 		ASSERT(g_gfx.m_shader[1]);
 		// Bind shader objects: vertex stage (shared) + the no-texture fragment stage.
@@ -1942,14 +1922,7 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 
 	vkCmdPushDataEXT(cmd, &pushDataInfo);
 
-	// s2h_3d #################################
-
-//	utils::cmdBindGraphicsShaders(cmd, g_s2h_3d.m_shader[0], g_s2h_3d.m_shader[1]);
-//	vkCmdDraw(cmd, 3, 1, 0, 0);  // 3 vertices
-
 	// post #################################
-
-	SetCheckpoint(cmd, "before post.slang draw");
 
 	if(g_post.m_shader[0] && g_post.m_shader[1])
 	{
@@ -1958,10 +1931,7 @@ void App::recordGraphicsCommands(VkCommandBuffer cmd)
 	}
 	else g_UIErrors.push_back("g_post failed to compile");
 
-	SetCheckpoint(cmd, "after post.slang draw");
-
 	vkCmdEndRendering(cmd);
-	SetCheckpoint(cmd, "after vkCmdEndRendering (offscreen pass)");
 }
 
 void App::initImGui()

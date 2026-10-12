@@ -24,7 +24,6 @@ public:
 		R->sha256.getHash(bufferR);
 
 		return memcmp(bufferL, bufferR, SHA256::HashBytes) < 0;
-//		return sha256 < rhs.sha256;
 	}
 
 	void Add(const char* Data, uint32 ByteCount)

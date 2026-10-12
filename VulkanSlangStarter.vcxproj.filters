@@ -294,9 +294,6 @@
     <None Include="shaders\shader.rast.slang">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="shaders\s2h_3d.slang">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="shaders\post.slang">
       <Filter>Shaders</Filter>
     </None>
