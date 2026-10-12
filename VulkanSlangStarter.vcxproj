@@ -191,7 +191,6 @@
     <None Include="shaders\mathlib.slang" />
     <None Include="shaders\post.slang" />
     <None Include="shaders\s2h_3d.slang" />
-    <None Include="shaders\shader.comp.slang" />
     <None Include="shaders\shader.rast.slang" />
   </ItemGroup>
   <ItemGroup>
