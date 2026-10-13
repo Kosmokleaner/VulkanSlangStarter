@@ -1,7 +1,7 @@
 
 # VulkanSlangStarter V 1.0
 
-A minimal starting point for a Vulkan renderer with ShaderToHuman and Slang shader hot reload by Martin Mittring.
+A minimal starting point for a Vulkan renderer with [ShaderToHuman (S2H)](https://github.com/electronicarts/ShaderToHuman) and Slang shader hot reload by Martin Mittring.
 
 <img width="75%" alt="image" src="https://github.com/user-attachments/assets/fa9d0d22-9f62-4605-b0c4-8bf1f2c29e86" />
 
