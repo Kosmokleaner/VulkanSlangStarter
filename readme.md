@@ -1,21 +1,23 @@
 
 # VulkanSlangStarter V 1.0
 
-A minimal starting point for a Vulkan renderer with [ShaderToHuman (S2H)](https://github.com/electronicarts/ShaderToHuman) and Slang shader hot reload by Martin Mittring.
+A minimal starting point for a Vulkan 2D renderer with [ShaderToHuman (S2H)](https://github.com/electronicarts/ShaderToHuman) and Slang shader hot reload by Martin Mittring.
 
 <img width="75%" alt="image" src="https://github.com/user-attachments/assets/fa9d0d22-9f62-4605-b0c4-8bf1f2c29e86" />
 
-Features:
+### Features:
 * Slang (HLSL like but allows for differential, compiles slower)
 * Shader cache for faster startup (supporting includes, cache key is file content based, not date)
 * Shader hot reload (press F5)
+* Shader error show up in Visual Studio "Output" (OutputDebugString),<br>
+  no double click to jump to error as Slang error syntax is not compatible to Visual Studio 
 * ImGui (2D Immediate Mode GUI, Docking Branch)
 * Texture support (non bindless)
 * Uses ShaderToHuman to print text from inside the shader, see below
 * Window and App icon (red triangle)
 * Screenshot function
 
-Platform: Windows11 x64
+Platform: Visual Studio project 2022, Windows11 x64
 Tested on "NVIDIA GeForce RTX 2080", driver "610.188.0"
 
 Command line parameters: --validate=0 / --validate=1 to turn the Vulkan validation layers off/on
@@ -24,6 +26,7 @@ Command line parameters: --validate=0 / --validate=1 to turn the Vulkan validati
 ### todo (next ones on top):
 * ShaderToHuman more 2D examples
 * ShaderToHuman 3D example
+  * 3D Camera controls and relative mouse movement
 * ShaderToHuman Quad with VS and PS example
 * Support Linux
 
