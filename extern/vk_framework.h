@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023-2026, NVIDIA CORPORATION.  All rights reserved.
+ * Modifications Copyright (c) 2026 Martin Mittring
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,11 @@
  *
  *
  * SPDX-FileCopyrightText: Copyright (c) 2023-2026, NVIDIA CORPORATION.
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * Derived from src/vk_framework.h in https://github.com/nvpro-samples/vk_minimal_latest,
+ * modified by Martin Mittring.
  */
 
 #pragma once
@@ -752,9 +757,9 @@ private:
     getAvailableInstanceExtensions();
 
     const VkApplicationInfo applicationInfo{
-        .pApplicationName   = "VVerse",
+        .pApplicationName   = "VulkanSlangStarter",
         .applicationVersion = 1,
-        .pEngineName        = "VVerse",
+        .pEngineName        = "VulkanSlangStarter",
         .engineVersion      = 1,
         .apiVersion         = m_apiVersion,
     };

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
+// SPDX-License-Identifier: Apache-2.0
+
 #include "Platform.h"
 #include "logger.h"	// LOGE -- writes to the attached console (like printf) and the log file both
 #include <windows.h>
@@ -5,7 +8,7 @@
 #include <stdlib.h>
 #include <iostream>
 
-void VVerseAssertFailed(const char* expression, const char* file, int line)
+void AppAssertFailed(const char* expression, const char* file, int line)
 {
 	LOGE("Assertion failed: %s, file %s, line %d", expression, file, line);
 	// Windows Terminal's ConPTY relays console output to the terminal asynchronously -- a process

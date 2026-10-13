@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
+// SPDX-License-Identifier: Apache-2.0
+
 #include "global.h"
 #include "ObjManager.h"
 

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 #include <vector>
 #include <new>		// placement new, used by CObjManager to run T's constructor/destructor explicitly

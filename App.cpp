@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2023-2026, NVIDIA CORPORATION.  All rights reserved.
+ * Modifications Copyright (c) 2026 Martin Mittring
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +16,11 @@
  *
  *
  * SPDX-FileCopyrightText: Copyright (c) 2023-2026, NVIDIA CORPORATION.
+ * SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * Derived from src/minimal_latest.cpp in https://github.com/nvpro-samples/vk_minimal_latest,
+ * modified by Martin Mittring.
  */
 
 
@@ -541,12 +546,6 @@ void App::run()
 			ImGuiID dock_id_left_top = 0;
 			ImGuiID dock_id_left_bottom = 0;
 			ImGui::DockBuilderSplitNode(leftID, ImGuiDir_Up, 0.50f, &dock_id_left_top, &dock_id_left_bottom);
-
-			ImGui::DockBuilderDockWindow("Properties", dock_id_left_top);
-			ImGui::DockBuilderDockWindow("Settings", dock_id_left_bottom);
-			ImGui::DockBuilderDockWindow("Materials", dock_id_left_bottom);
-			ImGui::DockBuilderDockWindow("Environment", dock_id_left_bottom);
-			ImGui::DockBuilderDockWindow("Info", dock_id_left_bottom);
 		}
 
 		bool bReloadShaders = false;

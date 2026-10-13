@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright (c) 2023-2026, NVIDIA CORPORATION.
+// SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
+// SPDX-License-Identifier: Apache-2.0
+// Portions derived from src/minimal_latest.cpp in https://github.com/nvpro-samples/vk_minimal_latest,
+// modified by Martin Mittring.
+
 #include "global.h"	// include first in any cpp
 #include "Texture.h"
 #include "Renderer.h"

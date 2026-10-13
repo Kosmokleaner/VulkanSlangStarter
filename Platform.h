@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
+// SPDX-License-Identifier: Apache-2.0
+
 #pragma once
 
 // useful
@@ -10,7 +13,7 @@ bool AttachParentConsole();
 // g_suppressAssertDialogs (App.cpp) is true: logs to stderr and terminates directly,
 // with no dialog-capable code anywhere in the path (unlike _wassert(), which can show one
 // regardless of report-mode settings that are supposed to prevent it).
-void VVerseAssertFailed(const char* expression, const char* file, int line);
+void AppAssertFailed(const char* expression, const char* file, int line);
 
 /*
 // call early in main

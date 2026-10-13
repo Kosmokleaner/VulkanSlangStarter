@@ -178,7 +178,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="CONTRIBUTING.md" />
     <None Include="readme.md" />
     <None Include="shaders\post.slang" />
   </ItemGroup>

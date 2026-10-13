@@ -1,3 +1,9 @@
+// SPDX-FileCopyrightText: Copyright (c) 2023-2026, NVIDIA CORPORATION.
+// SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
+// SPDX-License-Identifier: Apache-2.0
+// Derived from shaders/shader.rast.slang in https://github.com/nvpro-samples/vk_minimal_latest,
+// modified by Martin Mittring.
+
 #include "shader_io.h"
 
 #include "s2h/s2h_glsl.hlsl"

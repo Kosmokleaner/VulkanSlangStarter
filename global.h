@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026 Martin Mittring
+// SPDX-License-Identifier: Apache-2.0
+
 
 
 #pragma once
@@ -37,7 +40,7 @@ typedef glm::vec4 float4;
 extern bool g_suppressAssertDialogs;
 // Implemented in Platform.cpp -- logs and terminates
 // directly, with no dialog-capable code anywhere in the path. See ASSERT's own comment.
-void VVerseAssertFailed(const char* expression, const char* file, int line);
+void AppAssertFailed(const char* expression, const char* file, int line);
 
 // ASSERT(condition) or ASSERT(condition, message) -- logs and aborts in release (NDEBUG), asserts
 // in debug. The project's one and only assert mechanism: raw assert()/<assert.h> is NOT used
@@ -72,7 +75,7 @@ void VVerseAssertFailed(const char* expression, const char* file, int line);
 		if (!(condition))                                                                           \
 		{                                                                                            \
 			if (g_suppressAssertDialogs)                                                             \
-				VVerseAssertFailed(message, __FILE__, __LINE__);                                      \
+				AppAssertFailed(message, __FILE__, __LINE__);                                      \
 			else                                                                                     \
 			{                                                                                        \
 				/* Breaks directly into an attached debugger at this exact line (like a normal   */  \
