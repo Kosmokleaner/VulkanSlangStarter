@@ -13,6 +13,7 @@ Features:
 * Texture support (non bindless)
 * Uses ShaderToHuman to print text from inside the shader, see below
 * Window and App icon (red triangle)
+* Screenshot function
 
 Platform: Windows11 x64
 Tested on "NVIDIA GeForce RTX 2080", driver "610.188.0"
@@ -21,7 +22,10 @@ Command line parameters: --validate=0 / --validate=1 to turn the Vulkan validati
 (default: on in Debug, off in Release)
 
 ### todo (next ones on top):
-* support Linux
+* ShaderToHuman more 2D examples
+* ShaderToHuman 3D example
+* ShaderToHuman Quad with VS and PS example
+* Support Linux
 
 ### done (add at top, some element have been added at bottom):
 * 10/12/2026 V1.0
